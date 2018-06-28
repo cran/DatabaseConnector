@@ -62,7 +62,8 @@ setClass("DatabaseConnectorConnection",
          slots = list(jConnection = "jobjRef",
                       identifierQuote = "character",
                       stringQuote = "character",
-                      dbms = "character"))
+                      dbms = "character",
+                      uuid = "character"))
 
 #' Create a connection to a DBMS
 #'
@@ -92,6 +93,12 @@ setClass("DatabaseConnectorConnection",
 setMethod("dbConnect", "DatabaseConnectorDriver", function(drv, ...) {
   return(connect(...))
 })
+
+#' @exportMethod dbCanConnect
+NULL
+
+#' @exportMethod dbIsReadOnly
+NULL
 
 #' @inherit
 #' DBI::dbDisconnect title description params details references return seealso
@@ -312,7 +319,7 @@ setMethod("dbExecute",
 #' @export
 setMethod("dbListFields",
           signature("DatabaseConnectorConnection", "character"),
-          def = function(conn, name, database = NULL, schema = NULL, ...) {
+          function(conn, name, database = NULL, schema = NULL, ...) {
             columns <- listDatabaseConnectorColumns(connection = conn,
                                                     catalog = database,
                                                     schema = schema,
@@ -328,7 +335,7 @@ setMethod("dbListFields",
 #' @export
 setMethod("dbListTables",
           "DatabaseConnectorConnection",
-          def = function(conn, database = NULL, schema = NULL, ...) {
+          function(conn, database = NULL, schema = NULL, ...) {
             if (is.null(database)) {
               databaseSchema <- schema
             } else {
@@ -376,6 +383,58 @@ setMethod("dbWriteTable",
                         data = value,
                         dropTableIfExists = overwrite,
                         createTable = !append,
+                        tempTable = temporary,
+                        oracleTempSchema = oracleTempSchema)
+            invisible(TRUE)
+          })
+
+#' @inherit
+#' DBI::dbAppendTable title description params details references return seealso
+#' @param temporary          Should the table created as a temp table?
+#' @param oracleTempSchema   Specifically for Oracle, a schema with write priviliges where temp tables
+#'                           can be created.
+#
+#' @export
+setMethod("dbAppendTable",
+          signature("DatabaseConnectorConnection", "character", "data.frame"),
+          function(conn,
+                   name,
+                   value,
+                   temporary = FALSE,
+                   oracleTempSchema = NULL,
+                   ..., 
+                   row.names = NULL) {
+            insertTable(connection = conn,
+                        tableName = name,
+                        data = value,
+                        dropTableIfExists = FALSE,
+                        createTable = FALSE,
+                        tempTable = temporary,
+                        oracleTempSchema = oracleTempSchema)
+            invisible(TRUE)
+          })
+
+#' @inherit
+#' DBI::dbCreateTable title description params details references return seealso
+#' @param temporary          Should the table created as a temp table?
+#' @param oracleTempSchema   Specifically for Oracle, a schema with write priviliges where temp tables
+#'                           can be created.
+#
+#' @export
+setMethod("dbCreateTable",
+          signature("DatabaseConnectorConnection", "character", "data.frame"),
+          function(conn,
+                   name,
+                   fields,
+                   oracleTempSchema = NULL,
+                   ...,
+                   row.names = NULL,
+                   temporary = FALSE) {
+            insertTable(connection = conn,
+                        tableName = name,
+                        data = fields[FALSE, ],
+                        dropTableIfExists = TRUE,
+                        createTable = TRUE,
                         tempTable = temporary,
                         oracleTempSchema = oracleTempSchema)
             invisible(TRUE)
