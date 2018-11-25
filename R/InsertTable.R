@@ -242,6 +242,8 @@ insertTable <- function(connection,
       return("INTEGER")
     } else if (is.numeric(obj)) {
       return("FLOAT")
+    } else if (identical(class(obj), c("POSIXct", "POSIXt"))) {
+      return("DATETIME2")
     } else if (class(obj) == "Date") {
       return("DATE")
     } else {
@@ -344,6 +346,8 @@ insertTable <- function(connection,
               rJava::.jcall(batchedInsert, "V", "setInteger", i, column)
             } else if (is.numeric(column)) {
               rJava::.jcall(batchedInsert, "V", "setNumeric", i, column)
+            } else if (identical(class(column), c("POSIXct", "POSIXt"))) {
+              rJava::.jcall(batchedInsert, "V", "setDateTime", i, as.character(column))
             } else if (class(column) == "Date") {
               rJava::.jcall(batchedInsert, "V", "setDate", i, as.character(column))
             } else {
