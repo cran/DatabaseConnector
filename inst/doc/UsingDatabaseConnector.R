@@ -68,6 +68,11 @@ data.frame(PERSON_ID = c(1,2,3), GENDER_CONCEPT_ID = c(8507, 8507, 8507), YEAR_O
 #  x <- querySql.ffdf(conn, "SELECT * FROM person")
 
 ## ----eval=FALSE----------------------------------------------------------
+#  persons <- renderTranslatequerySql(conn,
+#                                     sql = "SELECT TOP 10 * FROM @schema.person",
+#                                     schema = "cdm_synpuf")
+
+## ----eval=FALSE----------------------------------------------------------
 #  data(mtcars)
 #  insertTable(conn, "mtcars", mtcars, createTable = TRUE)
 
@@ -104,4 +109,14 @@ TRUE
 ## ----eval=FALSE----------------------------------------------------------
 #  dbClearResult(res)
 #  dbDisconnect(res)
+
+## ------------------------------------------------------------------------
+conn <- connect(dbms = "sqlite", server = tempfile())
+
+# Upload cars dataset as table:
+insertTable(conn, "cars", cars)
+
+querySql(conn, "SELECT COUNT(*) FROM cars;")
+
+disconnect(conn)
 

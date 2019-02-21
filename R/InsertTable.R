@@ -1,6 +1,6 @@
 # @file InsertTable.R
 #
-# Copyright 2018 Observational Health Data Sciences and Informatics
+# Copyright 2019 Observational Health Data Sciences and Informatics
 #
 # This file is part of DatabaseConnector
 #
@@ -40,19 +40,35 @@
 mergeTempTables <- function(connection, tableName, varNames, sourceNames, location, distribution) {
   unionString <- paste("\nUNION ALL\nSELECT ", varNames, " FROM ", sep = "")
   valueString <- paste(sourceNames, collapse = unionString)
-  sql <- paste("IF XACT_STATE() = 1 COMMIT; CREATE TABLE ",
-               tableName,
-               " (",
-               varNames,
-               " ) WITH (",
-               location,
-               "DISTRIBUTION=",
-               distribution,
-               ") AS SELECT ",
-               varNames,
-               " FROM ",
-               valueString,
-               sep = "")
+  if (attr(connection, "dbms") == "pdw") {
+    sql <- paste("IF XACT_STATE() = 1 COMMIT; CREATE TABLE ",
+                 tableName,
+                 " (",
+                 varNames,
+                 " ) WITH (",
+                 location,
+                 "DISTRIBUTION=",
+                 distribution,
+                 ") AS SELECT ",
+                 varNames,
+                 " FROM ",
+                 valueString,
+                 sep = "")
+  } else {
+    sql <- paste("CREATE ",
+                 location,
+                 "TABLE ",
+                 tableName,
+                 " (",
+                 varNames,
+                 " ) ",
+                 distribution,
+                 " AS SELECT ",
+                 varNames,
+                 " FROM ",
+                 valueString,
+                 sep = "")
+  }
   executeSql(connection, sql, progressBar = FALSE, reportOverallTime = FALSE)
   
   # Drop source tables:
@@ -65,17 +81,34 @@ mergeTempTables <- function(connection, tableName, varNames, sourceNames, locati
 ctasHack <- function(connection, qname, tempTable, varNames, fts, data, progressBar) {
   batchSize <- 1000
   mergeSize <- 300
-  if (any(tolower(names(data)) == "subject_id")) {
-    distribution <- "HASH(SUBJECT_ID)"
-  } else if (any(tolower(names(data)) == "person_id")) {
-    distribution <- "HASH(PERSON_ID)"
+  if (attr(connection, "dbms") == "pdw") {
+    if (any(tolower(names(data)) == "subject_id")) {
+      distribution <- "HASH(SUBJECT_ID)"
+    } else if (any(tolower(names(data)) == "person_id")) {
+      distribution <- "HASH(PERSON_ID)"
+    } else {
+      distribution <- "REPLICATE"
+    }
+    tempLocation <- "LOCATION = USER_DB, "
+    if (tempTable) {
+      location <- tempLocation
+    } else {
+      location <- ""
+    }
   } else {
-    distribution <- "REPLICATE"
-  }
-  if (tempTable) {
-    location <- "LOCATION = USER_DB, "
-  } else {
-    location <- ""
+    if (any(tolower(names(data)) == "subject_id")) {
+      distribution <- "DISTKEY(SUBJECT_ID)"
+    } else if (any(tolower(names(data)) == "person_id")) {
+      distribution <- "DISTKEY(PERSON_ID)"
+    } else {
+      distribution <- ""
+    }
+    tempLocation <- "TEMP "
+    if (tempTable) {
+      location <- tempLocation
+    } else {
+      location <- ""
+    }
   }
   esc <- function(str) {
     result <- paste("'", gsub("'", "''", str), "'", sep = "")
@@ -94,7 +127,7 @@ ctasHack <- function(connection, qname, tempTable, varNames, fts, data, progress
     }
     if (length(tempNames) == mergeSize) {
       mergedName <- paste("#", paste(sample(letters, 24, replace = TRUE), collapse = ""), sep = "")
-      mergeTempTables(connection, mergedName, varNames, tempNames, location, distribution)
+      mergeTempTables(connection, mergedName, varNames, tempNames, tempLocation, distribution)
       tempNames <- c(mergedName)
     }
     # First line gets type information
@@ -116,15 +149,32 @@ ctasHack <- function(connection, qname, tempTable, varNames, fts, data, progress
     }
     tempName <- paste("#", paste(sample(letters, 24, replace = TRUE), collapse = ""), sep = "")
     tempNames <- c(tempNames, tempName)
-    sql <- paste("IF XACT_STATE() = 1 COMMIT; CREATE TABLE ",
-                 tempName,
-                 " (",
-                 varNames,
-                 " ) WITH (LOCATION = USER_DB, DISTRIBUTION=",
-                 distribution,
-                 ") AS SELECT ",
-                 valueString,
-                 sep = "")
+    if (attr(connection, "dbms") == "pdw") {
+      sql <- paste("IF XACT_STATE() = 1 COMMIT; CREATE TABLE ",
+                   tempName,
+                   " (",
+                   varNames,
+                   " ) WITH (",
+                   tempLocation,
+                   "DISTRIBUTION=",
+                   distribution,
+                   ") AS SELECT ",
+                   valueString,
+                   sep = "")
+    } else {
+      sql <- paste("CREATE ",
+                   tempLocation,
+                   "TABLE ",
+                   tempName,
+                   " (",
+                   varNames,
+                   " ) ",
+                   distribution,
+                   " AS SELECT ",
+                   valueString,
+                   sep = "")
+      
+    }
     executeSql(connection, sql, progressBar = FALSE, reportOverallTime = FALSE)
   }
   if (progressBar) {
@@ -132,6 +182,15 @@ ctasHack <- function(connection, qname, tempTable, varNames, fts, data, progress
     close(pb)
   }
   mergeTempTables(connection, qname, varNames, tempNames, location, distribution)
+}
+
+is.bigint <- function(x) {
+  num <- 2^63
+  
+  bigint.min <- -num
+  bigint.max <- num - 1
+  
+  return(!is.na(x) && is.numeric(x) && !is.factor(x) && x == round(x) &&  x >= bigint.min && x <= bigint.max)
 }
 
 #' Insert a table on the server
@@ -155,6 +214,8 @@ ctasHack <- function(connection, qname, tempTable, varNames, fts, data, progress
 #'                            used for permanent tables, and cannot be used to append to an existing
 #'                            table.
 #' @param progressBar         Show a progress bar when uploading?
+#' @param camelCaseToSnakeCase If TRUE, the data frame column names are assumed to use camelCase and
+#'                             are converted to snake_case before uploading.
 #'
 #' @details
 #' This function sends the data in a data frame to a table on the server. Either a new table is
@@ -211,7 +272,29 @@ insertTable <- function(connection,
                         tempTable = FALSE,
                         oracleTempSchema = NULL,
                         useMppBulkLoad = FALSE,
-                        progressBar = FALSE) {
+                        progressBar = FALSE,
+                        camelCaseToSnakeCase = FALSE) {
+  UseMethod("insertTable", connection)
+}
+
+#' @export
+insertTable.default <- function(connection,
+                                tableName,
+                                data,
+                                dropTableIfExists = TRUE,
+                                createTable = TRUE,
+                                tempTable = FALSE,
+                                oracleTempSchema = NULL,
+                                useMppBulkLoad = FALSE,
+                                progressBar = FALSE,
+                                camelCaseToSnakeCase = FALSE) {
+  if (camelCaseToSnakeCase) {
+    colnames(data) <- SqlRender::camelCaseToSnakeCase(colnames(data))
+  }
+  if (!tempTable & substr(tableName, 1, 1) == "#") {
+    tempTable <- TRUE
+    warning("Temp table name detected, setting tempTable parameter to TRUE")
+  }
   if (Sys.getenv("USE_MPP_BULK_LOAD") == "TRUE") {
     useMppBulkLoad <- TRUE
   }
@@ -219,10 +302,8 @@ insertTable <- function(connection,
     createTable <- TRUE
   if (tempTable & substr(tableName, 1, 1) != "#")
     tableName <- paste("#", tableName, sep = "")
-  if (!tempTable & substr(tableName, 1, 1) == "#") {
-    tempTable <- TRUE
-    warning("Temp table name detected, setting tempTable parameter to TRUE")
-  }
+  
+  
   if (is.vector(data) && !is.list(data))
     data <- data.frame(x = data)
   if (length(data) < 1)
@@ -240,12 +321,14 @@ insertTable <- function(connection,
   def <- function(obj) {
     if (is.integer(obj)) {
       return("INTEGER")
-    } else if (is.numeric(obj)) {
-      return("FLOAT")
     } else if (identical(class(obj), c("POSIXct", "POSIXt"))) {
       return("DATETIME2")
     } else if (class(obj) == "Date") {
       return("DATE")
+    } else if (is.bigint(obj)) {
+      return("BIGINT")
+    } else if (is.numeric(obj)) {
+      return("FLOAT")
     } else {
       if (is.factor(obj)) {
         maxLength <- max(nchar(levels(obj)), na.rm = TRUE)
@@ -270,10 +353,10 @@ insertTable <- function(connection,
     } else {
       sql <- "IF OBJECT_ID('@tableName', 'U') IS NOT NULL DROP TABLE @tableName;"
     }
-    sql <- SqlRender::renderSql(sql, tableName = tableName)$sql
-    sql <- SqlRender::translateSql(sql,
-                                   targetDialect = attr(connection, "dbms"),
-                                   oracleTempSchema = oracleTempSchema)$sql
+    sql <- SqlRender::render(sql, tableName = tableName)
+    sql <- SqlRender::translate(sql,
+                                targetDialect = attr(connection, "dbms"),
+                                oracleTempSchema = oracleTempSchema)
     executeSql(connection, sql, progressBar = FALSE, reportOverallTime = FALSE)
   }
   
@@ -287,7 +370,7 @@ insertTable <- function(connection,
     }
     writeLines("Attempting to use MPP bulk loading...")
     sql <- paste("CREATE TABLE ", qname, " (", fdef, ");", sep = "")
-    sql <- SqlRender::translateSql(sql, targetDialect = attr(connection, "dbms"))$sql
+    sql <- SqlRender::translate(sql, targetDialect = attr(connection, "dbms"))
     executeSql(connection, sql, progressBar = FALSE, reportOverallTime = FALSE)
     
     if (attr(connection, "dbms") == "redshift") {
@@ -296,14 +379,14 @@ insertTable <- function(connection,
       .bulkLoadPdw(connection, qname, data)
     }
   } else {
-    if (attr(connection, "dbms") == "pdw" && createTable && nrow(data) > 0) {
+    if ((attr(connection, "dbms") == "pdw" | attr(connection, "dbms") == "redshift") && createTable && nrow(data) > 0) {
       ctasHack(connection, qname, tempTable, varNames, fts, data, progressBar)
     } else {
       if (createTable) {
         sql <- paste("CREATE TABLE ", qname, " (", fdef, ");", sep = "")
-        sql <- SqlRender::translateSql(sql,
-                                       targetDialect = attr(connection, "dbms"),
-                                       oracleTempSchema = oracleTempSchema)$sql
+        sql <- SqlRender::translate(sql,
+                                    targetDialect = attr(connection, "dbms"),
+                                    oracleTempSchema = oracleTempSchema)
         executeSql(connection, sql, progressBar = FALSE, reportOverallTime = FALSE)
       }
       
@@ -315,9 +398,9 @@ insertTable <- function(connection,
                          paste(rep("?", length(fts)), collapse = ","),
                          ")",
                          sep = "")
-      insertSql <- SqlRender::translateSql(insertSql,
-                                           targetDialect = attr(connection, "dbms"),
-                                           oracleTempSchema = oracleTempSchema)$sql
+      insertSql <- SqlRender::translate(insertSql,
+                                        targetDialect = connection@dbms,
+                                        oracleTempSchema = oracleTempSchema)
       
       batchSize <- 10000
       
@@ -326,7 +409,6 @@ insertTable <- function(connection,
         rJava::.jcall(connection@jConnection, "V", "setAutoCommit", FALSE)
         on.exit(rJava::.jcall(connection@jConnection, "V", "setAutoCommit", TRUE))
       }
-      
       if (nrow(data) > 0) {
         if (progressBar) {
           pb <- txtProgressBar(style = 3)
@@ -350,6 +432,8 @@ insertTable <- function(connection,
               rJava::.jcall(batchedInsert, "V", "setDateTime", i, as.character(column))
             } else if (class(column) == "Date") {
               rJava::.jcall(batchedInsert, "V", "setDate", i, as.character(column))
+            } else if (is.bigint(column)) {
+              rJava::.jcall(batchedInsert, "V", "setBigint", i, as.numeric(column))
             } else {
               rJava::.jcall(batchedInsert, "V", "setString", i, as.character(column))
             }
@@ -365,6 +449,38 @@ insertTable <- function(connection,
       }
     }
   }
+}
+
+#' @export
+insertTable.DatabaseConnectorDbiConnection <- function(connection,
+                                                       tableName,
+                                                       data,
+                                                       dropTableIfExists = TRUE,
+                                                       createTable = TRUE,
+                                                       tempTable = FALSE,
+                                                       oracleTempSchema = NULL,
+                                                       useMppBulkLoad = FALSE,
+                                                       progressBar = FALSE,
+                                                       camelCaseToSnakeCase = FALSE) {
+  if (camelCaseToSnakeCase) {
+    colnames(data) <- SqlRender::camelCaseToSnakeCase(colnames(data))
+  }
+  if (!tempTable & substr(tableName, 1, 1) == "#") {
+    tempTable <- TRUE
+    warning("Temp table name detected, setting tempTable parameter to TRUE")
+  }
+  tableName <- gsub("^#", "", tableName)
+  # Convert dates and datetime to UNIX timestamp:
+  for (i in 1:ncol(data)) {
+    if (inherits(data[, i], "Date")) {
+      data[, i] <- as.numeric(as.POSIXct(as.character(data[, i]), origin = "1970-01-01", tz = "GMT"))
+    }
+    if (inherits(data[, i], "POSIXct")) {
+      data[, i] <- as.numeric(as.POSIXct(data[, i], origin = "1970-01-01", tz = "GMT"))
+    }
+  }
+  DBI::dbWriteTable(connection@dbiConnection, tableName, data, overwrite = dropTableIfExists, temporary = tempTable)
+  invisible(NULL)
 }
 
 .checkMppCredentials <- function(connection) {
@@ -453,7 +569,7 @@ insertTable <- function(connection,
   })
   
   sql <- "SELECT COUNT(*) FROM @table"
-  sql <- SqlRender::renderSql(sql, table = qname)$sql
+  sql <- SqlRender::render(sql, table = qname)
   count <- querySql(connection, sql)
   if (count[1, 1] != nrow(data)) {
     stop("Something went wrong when bulk uploading. Data has ", nrow(data), " rows, but table has ", count[1, 1], " records")
