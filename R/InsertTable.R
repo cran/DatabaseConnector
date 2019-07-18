@@ -78,6 +78,27 @@ mergeTempTables <- function(connection, tableName, varNames, sourceNames, locati
   }
 }
 
+toStrings <- function(data, fts) {
+  bigIntIdx <- fts == "BIGINT"
+  if (nrow(data) == 1) {
+    result <- sapply(data, as.character)
+    if (any(bigIntIdx)) {
+      result[bigIntIdx] <- sapply(data[, bigIntIdx], format, scientific = FALSE)
+    }
+    result <- paste("'", gsub("'", "''", result), "'", sep = "")
+    result[is.na(data)] <- "NULL"
+    return(as.data.frame(t(result), stringsAsFactors = FALSE))
+  } else {
+    result <- sapply(data, as.character)
+    if (any(bigIntIdx)) {
+      result[ ,bigIntIdx] <- sapply(data[ ,bigIntIdx], format, scientific = FALSE)
+    }
+    result <- apply(result, FUN = function(x) paste("'", gsub("'", "''", x), "'", sep = ""), MARGIN = 2)
+    result[is.na(data)] <- "NULL"
+    return(result)
+  }
+}
+
 ctasHack <- function(connection, qname, tempTable, varNames, fts, data, progressBar) {
   batchSize <- 1000
   mergeSize <- 300
@@ -106,14 +127,10 @@ ctasHack <- function(connection, qname, tempTable, varNames, fts, data, progress
     tempLocation <- "TEMP "
     if (tempTable) {
       location <- tempLocation
+      # qname <- gsub("^#", "", qname)
     } else {
       location <- ""
     }
-  }
-  esc <- function(str) {
-    result <- paste("'", gsub("'", "''", str), "'", sep = "")
-    result[is.na(str)] <- "NULL"
-    return(result)
   }
   
   # Insert data in batches in temp tables using CTAS:
@@ -130,19 +147,17 @@ ctasHack <- function(connection, qname, tempTable, varNames, fts, data, progress
       mergeTempTables(connection, mergedName, varNames, tempNames, tempLocation, distribution)
       tempNames <- c(mergedName)
     }
+    end <- min(start + batchSize - 1, nrow(data))
+    batch <- toStrings(data[start:end, , drop = FALSE], fts)    
     # First line gets type information
     valueString <- paste(paste("CAST(",
-                               sapply(data[start, , drop = FALSE], esc),
+                               batch[1, , drop = FALSE],
                                " AS ",
                                fts,
                                ")",
                                sep = ""), collapse = ",")
-    end <- min(start + batchSize - 1, nrow(data))
-    if (end == start + 1) {
-      valueString <- paste(c(valueString, paste(sapply(data[start + 1, , drop = FALSE], esc),
-                                                collapse = ",")), collapse = "\nUNION ALL\nSELECT ")
-    } else if (end > start + 1) {
-      valueString <- paste(c(valueString, apply(sapply(data[(start + 1):end, , drop = FALSE], esc),
+    if (end > start) {
+      valueString <- paste(c(valueString, apply(batch[2:nrow(batch), , drop = FALSE],
                                                 MARGIN = 1,
                                                 FUN = paste,
                                                 collapse = ",")), collapse = "\nUNION ALL\nSELECT ")
@@ -190,7 +205,7 @@ is.bigint <- function(x) {
   bigint.min <- -num
   bigint.max <- num - 1
   
-  return(!is.na(x) && is.numeric(x) && !is.factor(x) && x == round(x) &&  x >= bigint.min && x <= bigint.max)
+  return(!all(is.na(x)) && is.numeric(x) && !is.factor(x) && all(x == round(x), na.rm = TRUE) &&  all(x >= bigint.min, na.rm = TRUE) && all(x <= bigint.max, na.rm = TRUE))
 }
 
 #' Insert a table on the server
@@ -300,7 +315,7 @@ insertTable.default <- function(connection,
   }
   if (dropTableIfExists)
     createTable <- TRUE
-  if (tempTable & substr(tableName, 1, 1) != "#")
+  if (tempTable & substr(tableName, 1, 1) != "#" & attr(connection, "dbms") != "redshift")
     tableName <- paste("#", tableName, sep = "")
   
   
@@ -342,7 +357,7 @@ insertTable.default <- function(connection,
       }
     }
   }
-  fts <- sapply(data[1, ], def)
+  fts <- sapply(data, def)
   fdef <- paste(.sql.qescape(names(data), TRUE, connection@identifierQuote), fts, collapse = ",")
   qname <- .sql.qescape(tableName, TRUE, connection@identifierQuote)
   varNames <- paste(.sql.qescape(names(data), TRUE, connection@identifierQuote), collapse = ",")
@@ -361,7 +376,6 @@ insertTable.default <- function(connection,
   }
   
   if (createTable && !tempTable && useMppBulkLoad) {
-    ensure_installed("aws.s3")
     ensure_installed("uuid")
     ensure_installed("R.utils")
     ensure_installed("urltools")
@@ -374,6 +388,7 @@ insertTable.default <- function(connection,
     executeSql(connection, sql, progressBar = FALSE, reportOverallTime = FALSE)
     
     if (attr(connection, "dbms") == "redshift") {
+      ensure_installed("aws.s3")
       .bulkLoadRedshift(connection, qname, data)
     } else if (attr(connection, "dbms") == "pdw") {
       .bulkLoadPdw(connection, qname, data)

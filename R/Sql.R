@@ -262,6 +262,26 @@ lowLevelExecuteSql.DatabaseConnectorDbiConnection <- function(connection, sql) {
   invisible(rowsAffected)
 }
 
+supportsBatchUpdates <- function(connection) {
+  if (!inherits(connection, "DatabaseConnectorJdbcConnection")) {
+    return(FALSE)
+  }
+  tryCatch({
+    dbmsMeta <- rJava::.jcall(connection@jConnection, "Ljava/sql/DatabaseMetaData;", "getMetaData", check = FALSE)
+    if (!is.jnull(dbmsMeta)) {
+      if (rJava::.jcall(dbmsMeta, "Z", "supportsBatchUpdates")) {
+        writeLines("JDBC driver supports batch updates")
+        return(TRUE);
+      } else {
+        writeLines("JDBC driver does not support batch updates")
+      }
+    }
+  }, error = function(err) {
+    writeLines(paste("JDBC driver 'supportsBatchUpdates' threw exception", err$message))
+  })
+  return(FALSE);
+}
+
 #' Execute SQL code
 #'
 #' @description
@@ -277,6 +297,11 @@ lowLevelExecuteSql.DatabaseConnectorDbiConnection <- function(connection, sql) {
 #'                            all statements.
 #' @param errorReportFile     The file where an error report will be written if an error occurs. Defaults to
 #'                            'errorReport.txt' in the current working directory.
+#' @param runAsBatch          When true the SQL statements are sent to the server as a single batch, and 
+#'                            executed there. This will be faster if you have many small SQL statements, but
+#'                            there will be no progress bar, and no per-statement error messages. If the 
+#'                            database platform does not support batched updates the query is executed without
+#'                            batching.
 #'
 #' @details
 #' This function splits the SQL in separate statements and sends it to the server for execution. If an
@@ -302,15 +327,31 @@ executeSql <- function(connection,
                        profile = FALSE,
                        progressBar = TRUE,
                        reportOverallTime = TRUE, 
-                       errorReportFile = file.path(getwd(), "errorReport.txt")) {
+                       errorReportFile = file.path(getwd(), "errorReport.txt"),
+                       runAsBatch = FALSE) {
   if (inherits(connection, "DatabaseConnectorJdbcConnection") && rJava::is.jnull(connection@jConnection))
     stop("Connection is closed")
-  if (profile)
+  batched <- runAsBatch && supportsBatchUpdates(connection)
+  if (profile || batched) {
     progressBar <- FALSE
+  }
   sqlStatements <- SqlRender::splitSql(sql)
-  if (progressBar)
+  if (progressBar) {
     pb <- txtProgressBar(style = 3)
+  }
   start <- Sys.time()
+  if (batched) {
+    statement <- rJava::.jcall(connection@jConnection, "Ljava/sql/Statement;", "createStatement")
+    on.exit(rJava::.jcall(statement, "V", "close"))
+  }
+  if (inherits(connection, "DatabaseConnectorJdbcConnection") && 
+      connection@dbms == "redshift" &&
+      rJava::.jcall(connection@jConnection, "Z", "getAutoCommit")) {
+    # Turn off autocommit for RedShift to avoid this issue:
+    # https://github.com/OHDSI/DatabaseConnector/issues/90
+    rJava::.jcall(connection@jConnection, "V", "setAutoCommit", FALSE)
+    on.exit(rJava::.jcall(connection@jConnection, "V", "setAutoCommit", TRUE), add = TRUE)
+  }
   for (i in 1:length(sqlStatements)) {
     sqlStatement <- sqlStatements[i]
     if (profile) {
@@ -318,24 +359,38 @@ executeSql <- function(connection,
       writeChar(sqlStatement, fileConn, eos = NULL)
       close(fileConn)
     }
-    tryCatch({
-      startQuery <- Sys.time()
-      lowLevelExecuteSql(connection, sqlStatement)
-      if (profile) {
-        delta <- Sys.time() - startQuery
-        writeLines(paste("Statement ", i, "took", delta, attr(delta, "units")))
-      }
-    }, error = function(err) {
-      .createErrorReport(connection@dbms, err$message, sqlStatement, errorReportFile)
-    })
-    if (progressBar)
+    if (batched) {
+      rJava::.jcall(statement, "V", "addBatch", as.character(sqlStatement), check = FALSE)
+    } else {
+      tryCatch({
+        startQuery <- Sys.time()
+        lowLevelExecuteSql(connection, sqlStatement)
+        if (profile) {
+          delta <- Sys.time() - startQuery
+          writeLines(paste("Statement ", i, "took", delta, attr(delta, "units")))
+        }
+      }, error = function(err) {
+        .createErrorReport(connection@dbms, err$message, sqlStatement, errorReportFile)
+      })
+    }
+    if (progressBar) {
       setTxtProgressBar(pb, i/length(sqlStatements))
+    }
+  }
+  if (batched) {
+    tryCatch({
+      rowsAffected <- rJava::.jcall(statement, "[I", "executeBatch")
+      invisible(rowsAffected)
+    }, error = function(err) {
+      .createErrorReport(connection@dbms, err$message, sql, errorReportFile)
+    })
   }
   if (inherits(connection, "DatabaseConnectorJdbcConnection") && !rJava::.jcall(connection@jConnection, "Z", "getAutoCommit")) {
     rJava::.jcall(connection@jConnection, "V", "commit")
   }
-  if (progressBar)
+  if (progressBar) {
     close(pb)
+  }
   if (reportOverallTime) {
     delta <- Sys.time() - start
     writeLines(paste("Executing SQL took", signif(delta, 3), attr(delta, "units")))
@@ -492,6 +547,11 @@ querySql.ffdf <- function(connection, sql, errorReportFile = file.path(getwd(), 
 #'                            all statements.
 #' @param errorReportFile     The file where an error report will be written if an error occurs. Defaults to
 #'                            'errorReport.txt' in the current working directory.
+#' @param runAsBatch          When true the SQL statements are sent to the server as a single batch, and 
+#'                            executed there. This will be faster if you have many small SQL statements, but
+#'                            there will be no progress bar, and no per-statement error messages. If the 
+#'                            database platform does not support batched updates the query is executed as 
+#'                            ordinally.
 #' @param oracleTempSchema    A schema that can be used to create temp tables in when using Oracle or Impala.
 #' @param ...                 Parameters that will be used to render the SQL.
 #'
@@ -519,6 +579,7 @@ renderTranslateExecuteSql <- function(connection,
                                       progressBar = TRUE,
                                       reportOverallTime = TRUE, 
                                       errorReportFile = file.path(getwd(), "errorReport.txt"),
+                                      runAsBatch = FALSE,
                                       oracleTempSchema = NULL,
                                       ...) {
   sql <- SqlRender::render(sql, ...)
@@ -528,7 +589,8 @@ renderTranslateExecuteSql <- function(connection,
              profile = profile,
              progressBar = progressBar,
              reportOverallTime = reportOverallTime,
-             errorReportFile = errorReportFile)
+             errorReportFile = errorReportFile,
+             runAsBatch = runAsBatch)
 }
 
 #' Render, translate, and query to data.frame
