@@ -1,6 +1,6 @@
 # @file RStudio.R
 #
-# Copyright 2019 Observational Health Data Sciences and Informatics
+# Copyright 2020 Observational Health Data Sciences and Informatics
 #
 # This file is part of DatabaseConnector
 # 
@@ -248,7 +248,7 @@ getSchemaNames.default <- function(conn, catalog = NULL) {
   schemas <- character()
   while (rJava::.jcall(resultSet, "Z", "next")) {
     thisCatalog <- rJava::.jcall(resultSet, "S", "getString", "TABLE_CATALOG")
-    if (is.null(thisCatalog) || (!is.null(catalog) && thisCatalog == catalog)) {
+    if (is.jnull(thisCatalog) || (!is.jnull(catalog) && thisCatalog == catalog)) {
       schemas <- c(schemas, rJava::.jcall(resultSet, "S", "getString", "TABLE_SCHEM"))
     }
   }
