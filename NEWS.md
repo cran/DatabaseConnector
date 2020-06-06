@@ -1,3 +1,53 @@
+DatabaseConnector 3.0.0
+=======================
+
+Changes:
+
+- Dropping support for orphaned ff package.
+
+- Adding support for Andromeda package to replace ff.
+
+- Error report file name now defaults to errorReportSql.txt to avoid confusion with other error reports.
+
+- Enforcing delay if about to exceed query quota on BigQuery.
+
+
+DatabaseConnector 2.4.4
+=======================
+
+Changes:
+
+1. Deprecating schema argument in connect and createConnectionDetails functions.
+
+2. Checking table and column names for SQL reserved words when inserting a table.
+
+3. Switching to Java 1.8 as minimum requirement.
+
+4. Preparing for DatabaseConnectorJars v1.2.0, which will have JDBC v4.2 drivers (instead of JDBC v4).
+
+Bugfixes:
+
+1. Setting append = TRUE when not creating table in insertTable for RSQLite.
+
+2. On RedShift, converting schema name to lowercase before getting table names to fix empty results.
+
+3. Fixed insertTable on BigQuery.
+
+4. Fixing autocommit not supported error on BigQuery.
+
+
+DatabaseConnector 2.4.3
+=======================
+
+Changes:
+
+1. Adding bulk upload for Hive.
+
+Bugfixes:
+
+2. Reducing batch size when performing CTAS hack on Hive to avoid error.
+
+
 DatabaseConnector 2.4.2
 =======================
 

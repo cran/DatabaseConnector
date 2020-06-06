@@ -22,7 +22,7 @@ insertTable(
 
 \item{tableName}{The name of the table where the data should be inserted.}
 
-\item{data}{The data frame or ffdf containing the data to be inserted.}
+\item{data}{The data frame containing the data to be inserted.}
 
 \item{dropTableIfExists}{Drop the table if the table already exists before writing?}
 
@@ -30,7 +30,7 @@ insertTable(
 
 \item{tempTable}{Should the table created as a temp table?}
 
-\item{oracleTempSchema}{Specifically for Oracle, a schema with write priviliges where temp tables
+\item{oracleTempSchema}{Specifically for Oracle, a schema with write privileges where temp tables
 can be created.}
 
 \item{useMppBulkLoad}{If using Redshift or PDW, use more performant bulk loading techniques.
@@ -46,7 +46,7 @@ table.}
 are converted to snake_case before uploading.}
 }
 \description{
-This function sends the data in a data frame or ffdf to a table on the server. Either a new table
+This function sends the data in a data frame to a table on the server. Either a new table
 is created, or the data is appended to an existing table.
 }
 \details{
