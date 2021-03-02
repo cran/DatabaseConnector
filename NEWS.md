@@ -1,15 +1,52 @@
+DatabaseConnector 4.0.0
+=======================
+
+Changes:
+
+1. JDBC drivers are no longer pre-packaged in the `DatabaseConnectorJars` package. Instead, drivers need to be downloaded manually to a user-specified location in the local file system. The `downloadJdbcDrivers()` function has been added to make downing drivers easier. The path to the drivers can be set in the 'DATABASECONNECTOR_JAR_FOLDER' environmental variable.
+
+2. Support for 64-bit integers using bit64's `integer64` type, although this is disabled by default because of the danger of silent errors when using `integer64` in R. Each query function has a `integer64AsNumeric` argument, and overall behavior can be set using`options(databaseConnectorInteger64AsNumeric = FALSE)`.
+
+3. INT fields are now translated to R integers and back.
+
+4. ConnectionDetails delays evaluation of sensitive arguments until needed for improved security.
+
+5. Removing deprecated `schema` argument from `createConnectionDetails` and `connect`.
+
+6. Deprecating `useMppBulkLoad` argument of `insertTable()` function in favor of `bulkLoad` argument.
+
+7. Deprecating `oracleTempSchema` argument in various functions in favor of `tempEmulationSchema` argument, which can be set via the "sqlRenderTempEmulationSchema" option.
+
+8. Adding bulk upload mode for PostgreSQL.
+
+9. Batch mode in `executeSql` divides SQL into batches (1000 statements per batch) to avoid running our of Java heap memory.
+
+10. Removed message that 'JDBC driver supports batch updates' when running executeSql in batch mode.
+
+11. Added optional `databaseSchema` argument to `insertTable` for consistency with general OHDSI framework.
+
+
+Bugfixes:
+
+1. Fixed 'Warning: no non-missing arguments to max; returning -Inf' when a column only has NA values, or no values at all.
+
+2. Fixed error when trying to insert data from a tibble.
+
+3. Error report now includes all SQL in a batch when failing in batch mode.
+
+
 DatabaseConnector 3.0.0
 =======================
 
 Changes:
 
-- Dropping support for orphaned ff package.
+1. Dropping support for orphaned ff package.
 
-- Adding support for Andromeda package to replace ff.
+2. Adding support for Andromeda package to replace ff.
 
-- Error report file name now defaults to errorReportSql.txt to avoid confusion with other error reports.
+3. Error report file name now defaults to errorReportSql.txt to avoid confusion with other error reports.
 
-- Enforcing delay if about to exceed query quota on BigQuery.
+4. Enforcing delay if about to exceed query quota on BigQuery.
 
 
 DatabaseConnector 2.4.4

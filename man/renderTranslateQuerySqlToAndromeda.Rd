@@ -12,6 +12,8 @@ renderTranslateQuerySqlToAndromeda(
   errorReportFile = file.path(getwd(), "errorReportSql.txt"),
   snakeCaseToCamelCase = FALSE,
   oracleTempSchema = NULL,
+  tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
+  integer64AsNumeric = getOption("databaseConnectorInteger64AsNumeric", default = TRUE),
   ...
 )
 }
@@ -29,7 +31,14 @@ renderTranslateQuerySqlToAndromeda(
 
 \item{snakeCaseToCamelCase}{If true, field names are assumed to use snake_case, and are converted to camelCase.}
 
-\item{oracleTempSchema}{A schema that can be used to create temp tables in when using Oracle or Impala.}
+\item{oracleTempSchema}{DEPRECATED: use \code{tempEmulationSchema} instead.}
+
+\item{tempEmulationSchema}{Some database platforms like Oracle and Impala do not truly support temp tables. To
+emulate temp tables, provide a schema with write privileges where temp tables
+can be created.}
+
+\item{integer64AsNumeric}{Logical: should 64-bit integers be converted to numeric (double) values? If FALSE
+64-bit integers will be represented using \code{bit64::integer64}.}
 
 \item{...}{Parameters that will be used to render the SQL.}
 }

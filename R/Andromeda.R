@@ -1,4 +1,4 @@
-# Copyright 2020 Observational Health Data Sciences and Informatics
+# Copyright 2021 Observational Health Data Sciences and Informatics
 #
 # This file is part of DatabaseConnector
 #
@@ -26,6 +26,8 @@
 #'                        to R's date format?
 #' @param andromeda An open connection to a Andromeda database, for example as created using \code{\link[Andromeda]{andromeda}}.
 #' @param andromedaTableName  The name of the table in the local Andromeda database where the results of the query will be stored.
+#' @param integer64AsNumeric Logical: should 64-bit integers be converted to numeric (double) values? If FALSE
+#'                          64-bit integers will be represented using \code{bit64::integer64}. 
 #'
 #' @details
 #' Retrieves data from the database server and stores it in a local Andromeda database This allows very large
@@ -36,23 +38,37 @@
 #' Invisibly returns the andromeda. The Andromeda database will have a table added with the query results.
 #'
 #' @export
-lowLevelQuerySqlToAndromeda <- function(connection, query, andromeda, andromedaTableName, datesAsString = FALSE) {
+lowLevelQuerySqlToAndromeda <- function(connection, 
+                                        query, 
+                                        andromeda, 
+                                        andromedaTableName, 
+                                        datesAsString = FALSE, 
+                                        integer64AsNumeric = getOption("databaseConnectorInteger64AsNumeric", default = TRUE)) {
   UseMethod("lowLevelQuerySqlToAndromeda", connection)
 }
 
 #' @export
-lowLevelQuerySqlToAndromeda.default <- function(connection, query, andromeda, andromedaTableName, datesAsString = FALSE) {
+lowLevelQuerySqlToAndromeda.default <- function(connection, 
+                                                query, 
+                                                andromeda, 
+                                                andromedaTableName, 
+                                                datesAsString = FALSE, 
+                                                integer64AsNumeric = getOption("databaseConnectorInteger64AsNumeric", default = TRUE)) {
   if (rJava::is.jnull(connection@jConnection))
     stop("Connection is closed")
   batchedQuery <- rJava::.jnew("org.ohdsi.databaseConnector.BatchedQuery",
                                connection@jConnection,
-                               query)
+                               query,
+                               connection@dbms)
   
   on.exit(rJava::.jcall(batchedQuery, "V", "clear"))
   
   columnTypes <- rJava::.jcall(batchedQuery, "[I", "getColumnTypes")
   if (length(columnTypes) == 0)
     stop("No columns found")
+  if (any(columnTypes == 5)) {
+    validateInt64Query()
+  }
   first <- TRUE
   while (!rJava::.jcall(batchedQuery, "Z", "isDone")) {
     rJava::.jcall(batchedQuery, "V", "fetchBatch")
@@ -65,6 +81,23 @@ lowLevelQuerySqlToAndromeda.default <- function(connection, query, andromeda, an
                                 as.integer(i))
         # rJava doesn't appear to be able to return NAs, so converting NaNs to NAs:
         column[is.nan(column)] <- NA
+        batch[[i]] <- column
+      } else if (columnTypes[i] == 5) {
+        column <- rJava::.jcall(batchedQuery,
+                                "[D",
+                                "getInteger64",
+                                as.integer(i)) 
+        oldClass(column) <- "integer64"
+        if (integer64AsNumeric) {
+          batch[[i]] <- convertInteger64ToNumeric(column)
+        } else {
+          batch[[i]] <- column
+        }
+      } else if (columnTypes[i] == 6) {
+        column <- rJava::.jcall(batchedQuery,
+                                "[I",
+                                "getInteger",
+                                as.integer(i))
         batch[[i]] <- column
       } else  {
         batch[[i]] <- rJava::.jcall(batchedQuery,
@@ -96,9 +129,13 @@ lowLevelQuerySqlToAndromeda.default <- function(connection, query, andromeda, an
 }
 
 #' @export
-lowLevelQuerySqlToAndromeda.DatabaseConnectorDbiConnection <- function(connection, query, andromeda, andromedaTableName, datesAsString = FALSE) {
-  results <- lowLevelQuerySql(connection, query)
-  
+lowLevelQuerySqlToAndromeda.DatabaseConnectorDbiConnection <- function(connection, 
+                                                                       query, 
+                                                                       andromeda, 
+                                                                       andromedaTableName, 
+                                                                       datesAsString = FALSE, 
+                                                                       integer64AsNumeric = getOption("databaseConnectorInteger64AsNumeric", default = TRUE)) {
+  results <- lowLevelQuerySql(connection, query, integer64AsNumeric = integer64AsNumeric)
   RSQLite::dbWriteTable(conn = andromeda,
                         name = andromedaTableName,
                         value = results,
@@ -119,6 +156,8 @@ lowLevelQuerySqlToAndromeda.DatabaseConnectorDbiConnection <- function(connectio
 #' @param errorReportFile      The file where an error report will be written if an error occurs. Defaults to
 #'                             'errorReportSql.txt' in the current working directory.
 #' @param snakeCaseToCamelCase If true, field names are assumed to use snake_case, and are converted to camelCase.
+#' @param integer64AsNumeric   Logical: should 64-bit integers be converted to numeric (double) values? If FALSE
+#'                             64-bit integers will be represented using \code{bit64::integer64}. 
 #'
 #' @details
 #' Retrieves data from the database server and stores it in a local Andromeda database. This allows very large
@@ -153,7 +192,8 @@ querySqlToAndromeda <- function(connection,
                                 andromeda, 
                                 andromedaTableName, 
                                 errorReportFile = file.path(getwd(), "errorReportSql.txt"), 
-                                snakeCaseToCamelCase = FALSE) {
+                                snakeCaseToCamelCase = FALSE, 
+                                integer64AsNumeric = getOption("databaseConnectorInteger64AsNumeric", default = TRUE)) {
   if (inherits(connection, "DatabaseConnectorJdbcConnection") && rJava::is.jnull(connection@jConnection))
     stop("Connection is closed")
   if (!inherits(andromeda, "SQLiteConnection"))
@@ -169,7 +209,8 @@ querySqlToAndromeda <- function(connection,
     lowLevelQuerySqlToAndromeda(connection = connection,
                                 query = sqlStatements[1], 
                                 andromeda = andromeda, 
-                                andromedaTableName = andromedaTableName)
+                                andromedaTableName = andromedaTableName,
+                                integer64AsNumeric = integer64AsNumeric)
     columnNames <- RSQLite::dbListFields(andromeda, andromedaTableName)
     newColumnNames <- toupper(columnNames)
     if (snakeCaseToCamelCase) { 
@@ -198,7 +239,12 @@ querySqlToAndromeda <- function(connection,
 #' @param errorReportFile      The file where an error report will be written if an error occurs. Defaults to
 #'                             'errorReportSql.txt' in the current working directory.
 #' @param snakeCaseToCamelCase If true, field names are assumed to use snake_case, and are converted to camelCase.  
-#' @param oracleTempSchema     A schema that can be used to create temp tables in when using Oracle or Impala.
+#' @param oracleTempSchema    DEPRECATED: use \code{tempEmulationSchema} instead.
+#' @param tempEmulationSchema Some database platforms like Oracle and Impala do not truly support temp tables. To
+#'                            emulate temp tables, provide a schema with write privileges where temp tables
+#'                            can be created.
+#' @param integer64AsNumeric  Logical: should 64-bit integers be converted to numeric (double) values? If FALSE
+#'                           64-bit integers will be represented using \code{bit64::integer64}. 
 #' @param ...                  Parameters that will be used to render the SQL.
 #'
 #' @details
@@ -233,13 +279,22 @@ renderTranslateQuerySqlToAndromeda <- function(connection,
                                                errorReportFile = file.path(getwd(), "errorReportSql.txt"), 
                                                snakeCaseToCamelCase = FALSE,
                                                oracleTempSchema = NULL,
+                                               tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"), 
+                                               integer64AsNumeric = getOption("databaseConnectorInteger64AsNumeric", default = TRUE),
                                                ...) {
+  if (!is.null(oracleTempSchema) && oracleTempSchema != "") {
+    warn("The 'oracleTempSchema' argument is deprecated. Use 'tempEmulationSchema' instead.",
+         .frequency = "regularly",
+         .frequency_id = "oracleTempSchema")
+    tempEmulationSchema <- oracleTempSchema
+  }
   sql <- SqlRender::render(sql, ...)
-  sql <- SqlRender::translate(sql, targetDialect = connection@dbms, oracleTempSchema = oracleTempSchema)
+  sql <- SqlRender::translate(sql, targetDialect = connection@dbms, oracleTempSchema = tempEmulationSchema)
   return(querySqlToAndromeda(connection = connection,
                              sql = sql,
                              andromeda = andromeda,
                              andromedaTableName = andromedaTableName,
                              errorReportFile = errorReportFile,
-                             snakeCaseToCamelCase = snakeCaseToCamelCase))
+                             snakeCaseToCamelCase = snakeCaseToCamelCase,
+                             integer64AsNumeric = integer64AsNumeric))
 }

@@ -1,6 +1,6 @@
 # @file RStudio.R
 #
-# Copyright 2020 Observational Health Data Sciences and Informatics
+# Copyright 2021 Observational Health Data Sciences and Informatics
 #
 # This file is part of DatabaseConnector
 # 
@@ -15,7 +15,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 
 registerWithRStudio <- function(connection) {
   observer <- getOption("connectionObserver")
@@ -187,7 +186,7 @@ previewObject <- function(connection, rowLimit, catalog = NULL, table = NULL, sc
 
 connectionActions <- function(connection) {
   list(Help = list(icon = "", callback = function() {
-    utils::browseURL("https://github.com/OHDSI/DatabaseConnector/blob/master/README.md")
+    utils::browseURL("http://ohdsi.github.io/DatabaseConnector/")
   }))
 }
 

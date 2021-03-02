@@ -1,20 +1,28 @@
 ## ---- echo = FALSE, message = FALSE-------------------------------------------
 library(DatabaseConnector)
-knitr::opts_chunk$set(
-  cache=FALSE,
-  comment = "#>",
-  error = FALSE,
-  tidy = FALSE)
+oldJarFolder <- Sys.getenv("DATABASECONNECTOR_JAR_FOLDER")
+Sys.setenv("DATABASECONNECTOR_JAR_FOLDER" = tempdir())
+
+## ----eval=FALSE---------------------------------------------------------------
+#  Sys.setenv("DATABASECONNECTOR_JAR_FOLDER" = "c:/temp/jdbcDrivers")
+
+## ----eval=FALSE---------------------------------------------------------------
+#  downloadJdbcDrivers("postgresql")
+
+## ----echo=FALSE---------------------------------------------------------------
+writeLines("DatabaseConnector JDBC drivers downloaded to 'c:/temp/jdbcDrivers'.")
 
 ## ----eval=FALSE---------------------------------------------------------------
 #  ?jdbcDrivers
 
 ## ----eval=FALSE---------------------------------------------------------------
+#  install.packages("RSQLite")
+
+## ----eval=FALSE---------------------------------------------------------------
 #  conn <- connect(dbms = "postgresql",
 #                  server = "localhost/postgres",
 #                  user = "joe",
-#                  password = "secret",
-#                  schema = "cdm")
+#                  password = "secret")
 
 ## ----echo=FALSE---------------------------------------------------------------
 writeLines("Connecting using PostgreSQL driver")
@@ -26,8 +34,7 @@ writeLines("Connecting using PostgreSQL driver")
 #  conn <- connect(dbms = "postgresql",
 #                  connectionString = "jdbc:postgresql://localhost:5432/postgres",
 #                  user = "joe",
-#                  password = "secret",
-#                  schema = "cdm")
+#                  password = "secret")
 
 ## ----echo=FALSE---------------------------------------------------------------
 writeLines("Connecting using PostgreSQL driver")
@@ -36,24 +43,11 @@ writeLines("Connecting using PostgreSQL driver")
 #  details <- createConnectionDetails(dbms = "postgresql",
 #                                     server = "localhost/postgres",
 #                                     user = "joe",
-#                                     password = "secret",
-#                                     schema = "cdm")
+#                                     password = "secret")
 #  conn <- connect(details)
 
 ## ----echo=FALSE---------------------------------------------------------------
 writeLines("Connecting using PostgreSQL driver")
-
-## ----eval=FALSE---------------------------------------------------------------
-#  details <- createConnectionDetails(dbms = "netezza",
-#                                     server = "myserver.com/mainDb",
-#                                     user = "joe",
-#                                     password = "secret",
-#                                     schema = "cdm",
-#                                     pathToDriver = "c:/temp")
-#  conn <- connect(details)
-
-## ----echo=FALSE---------------------------------------------------------------
-writeLines("Connecting using Netezza driver")
 
 ## ----eval=FALSE---------------------------------------------------------------
 #  querySql(conn, "SELECT TOP 3 * FROM person")
@@ -83,8 +77,7 @@ data.frame(PERSON_ID = c(1,2,3), GENDER_CONCEPT_ID = c(8507, 8507, 8507), YEAR_O
 #                    dbms = "postgresql",
 #                    server = "localhost/postgres",
 #                    user = "joe",
-#                    password = "secret",
-#                    schema = "cdm")
+#                    password = "secret")
 
 ## ----echo=FALSE---------------------------------------------------------------
 writeLines("Connecting using PostgreSQL driver")
@@ -116,9 +109,14 @@ TRUE
 conn <- connect(dbms = "sqlite", server = tempfile())
 
 # Upload cars dataset as table:
-insertTable(conn, "cars", cars)
+insertTable(connection = conn, 
+            tableName = "cars", 
+            data = cars)
 
-querySql(conn, "SELECT COUNT(*) FROM cars;")
+querySql(conn, "SELECT COUNT(*) FROM main.cars;")
 
 disconnect(conn)
+
+## ---- echo = FALSE, message = FALSE-------------------------------------------
+Sys.setenv("DATABASECONNECTOR_JAR_FOLDER" = oldJarFolder)
 

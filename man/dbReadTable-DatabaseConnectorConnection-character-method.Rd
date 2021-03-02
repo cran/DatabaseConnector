@@ -37,7 +37,7 @@ An error is raised if the table does not exist.
 An empty table is returned as a data frame with zero rows.
 
 The presence of \link[DBI]{rownames} depends on the \code{row.names} argument,
-see \code{\link[DBI:sqlColumnToRownames]{sqlColumnToRownames()}} for details:
+see \code{\link[DBI:rownames]{sqlColumnToRownames()}} for details:
 \itemize{
 \item If \code{FALSE} or \code{NULL}, the returned data frame doesn't have row names.
 \item If \code{TRUE}, a column named "row_names" is converted to row names,
@@ -55,7 +55,7 @@ If the database supports identifiers with special characters,
 the columns in the returned data frame are converted to valid R
 identifiers
 if the \code{check.names} argument is \code{TRUE},
-otherwise non-syntactic column names can be returned unquoted.
+If \code{check.names = FALSE}, the returned table has non-syntactic column names without quotes.
 
 An error is raised when calling this method for a closed
 or invalid connection.

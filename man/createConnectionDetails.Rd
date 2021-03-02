@@ -24,12 +24,6 @@
 
 \item{port}{(optional) The port on the server to connect to.}
 
-\item{schema}{(DEPRECATED. optional) The name of the schema to connect to. 
-DatabaseConnector attempts to set the schema using USE statement, but
-not all DBMS support USE statements. In DBMS that don't support USE
-statements this strategy will fail. Instead use a fully specified table 
-names in your SQL statement, for example 'SELECT * FROM my_schema.my_table;'}
-
 \item{extraSettings}{(optional) Additional configuration settings specific to the database
 provider to configure things as security for SSL. These must follow the
 format for the JDBC connection for the RDBMS specified in dbms.}
@@ -42,8 +36,8 @@ or \code{"oci"}.}
 \code{user} and \code{password} are not specified, they are assumed to
 already be included in the connection string.}
 
-\item{pathToDriver}{Path to the JDBC driver JAR files. Currently only needed for BigQuery, Impala 
-and Netezza. See \link{jdbcDrivers} for details on how to get the drivers.}
+\item{pathToDriver}{Path to the JDBC driver JAR files. See \code{\link{downloadJdbcDrivers}} 
+for instructions on how to download the relevant drivers.}
 }
 \value{
 A list with all the details needed to connect to a database.
@@ -52,7 +46,7 @@ A list with all the details needed to connect to a database.
 \code{createConnectionDetails} creates a list containing all details needed to connect to a
 database. There are three ways to call this function:
 \itemize{
-  \item \code{createConnectionDetails(dbms, user, password, server, port, schema, extraSettings,
+  \item \code{createConnectionDetails(dbms, user, password, server, port, extraSettings,
         oracleDriver, pathToDriver)}
   \item \code{createConnectionDetails(dbms, connectionString, pathToDriver)}
   \item \code{createConnectionDetails(dbms, connectionString, user, password, pathToDriver)}
@@ -73,11 +67,10 @@ Oracle:
   \item \code{server}. This field contains the SID, or host and servicename, SID, or TNSName:
         '<sid>', '<host>/<sid>', '<host>/<service name>', or '<tnsname>'
   \item \code{port}. Specifies the port on the server (default = 1521)
-  \item \code{schema}. DEPRECATED: This field contains the schema (i.e. 'user' in Oracle terms) containing the
-        tables
   \item \code{extraSettings} The configuration settings for the connection (i.e. SSL Settings such
         as "(PROTOCOL=tcps)")
   \item \code{oracleDriver} The driver to be used. Choose between "thin" or "oci".
+  \item \code{pathToDriver} The path to the folder containing the Oracle JDBC driver JAR files.
 }
 Microsoft SQL Server:
 \itemize{
@@ -87,10 +80,9 @@ Microsoft SQL Server:
   \item \code{password}. The password used to log on to the server
   \item \code{server}. This field contains the host name of the server
   \item \code{port}. Not used for SQL Server
-  \item \code{schema}. DEPRECATED: The database containing the tables. If both database and schema are specified
-        (e.g. 'my_database.dbo', then only the database part is used, the schema is ignored.
   \item \code{extraSettings} The configuration settings for the connection (i.e. SSL Settings such
         as "encrypt=true; trustServerCertificate=false;")
+  \item \code{pathToDriver} The path to the folder containing the SQL Server JDBC driver JAR files.
 }
 Microsoft PDW:
 \itemize{
@@ -100,9 +92,9 @@ Microsoft PDW:
   \item \code{password}. The password used to log on to the server
   \item \code{server}. This field contains the host name of the server
   \item \code{port}. Not used for SQL Server
-  \item \code{schema}. DEPRECATED: The database containing the tables
   \item \code{extraSettings} The configuration settings for the connection (i.e. SSL Settings such
         as "encrypt=true; trustServerCertificate=false;")
+  \item \code{pathToDriver} The path to the folder containing the SQL Server JDBC driver JAR files.
 }
 PostgreSQL:
 \itemize{
@@ -111,9 +103,9 @@ PostgreSQL:
   \item \code{server}. This field contains the host name of the server and the database holding the
         relevant schemas: <host>/<database>
   \item \code{port}. Specifies the port on the server (default = 5432)
-  \item \code{schema}. DEPRECATED: The schema containing the tables.
   \item \code{extraSettings} The configuration settings for the connection (i.e. SSL Settings such
         as "ssl=true")
+  \item \code{pathToDriver} The path to the folder containing the PostgreSQL JDBC driver JAR files.
 }
 Redshift:
 \itemize{
@@ -122,9 +114,9 @@ Redshift:
   \item \code{server}. This field contains the host name of the server and the database holding the
         relevant schemas: <host>/<database>
   \item \code{port}. Specifies the port on the server (default = 5439)
-  \item \code{schema}. DEPRECATED: The schema containing the tables.
   \item \code{extraSettings} The configuration settings for the connection (i.e. SSL Settings such
         as "ssl=true&sslfactory=com.amazon.redshift.ssl.NonValidatingFactory")
+  \item \code{pathToDriver} The path to the folder containing the RedShift JDBC driver JAR files.
 }
 Netezza:
 \itemize{
@@ -133,7 +125,6 @@ Netezza:
   \item \code{server}. This field contains the host name of the server and the database holding the
         relevant schemas: <host>/<database>
   \item \code{port}. Specifies the port on the server (default = 5480)
-  \item \code{schema}. DEPRECATED: The schema containing the tables.
   \item \code{extraSettings} The configuration settings for the connection (i.e. SSL Settings such
         as "ssl=true")
   \item \code{pathToDriver} The path to the folder containing the Netezza JDBC driver JAR file
@@ -145,7 +136,6 @@ Impala:
   \item \code{password}. The password for that user
   \item \code{server}. The host name of the server
   \item \code{port}. Specifies the port on the server (default = 21050)
-  \item \code{schema}. DEPRECATED: The database containing the tables
   \item \code{extraSettings} The configuration settings for the connection (i.e. SSL Settings such
         as "SSLKeyStorePwd=*****")
   \item \code{pathToDriver} The path to the folder containing the Impala JDBC driver JAR files.
@@ -156,10 +146,10 @@ SQLite:
 }
 
 To be able to use Windows authentication for SQL Server (and PDW), you have to install the JDBC
-driver. Download the .exe from
-\href{http://www.microsoft.com/en-us/download/details.aspx?displaylang=en&id=11774}{Microsoft} and
-run it, thereby extracting its contents to a folder. In the extracted folder you will find the file
-sqljdbc_4.0/enu/auth/x64/sqljdbc_auth.dll (64-bits) or sqljdbc_4.0/enu/auth/x86/sqljdbc_auth.dll
+driver. Download the .zip from
+\href{https://docs.microsoft.com/en-us/sql/connect/jdbc/download-microsoft-jdbc-driver-for-sql-server?view=sql-server-ver15}{Microsoft} 
+and extract its contents to a folder. In the extracted folder you will find the file
+sqljdbc_9.2/enu/auth/x64/mssql-jdbc_auth-9.2.0.x64.dll (64-bits) or ssqljdbc_9.2/enu/auth/x86/mssql-jdbc_auth-9.2.0.x86.dll
 (32-bits), which needs to be moved to location on the system path, for example to
 c:/windows/system32. If you not have write access to any folder in the system path, you can also 
 specify the path to the folder containing the dll by setting the environmental variable 
