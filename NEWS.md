@@ -1,3 +1,31 @@
+DatabaseConnector 5.0.0
+=======================
+
+Changes:
+
+1. 32-bit integers are also converted to numeric by default because (a) the output of some SQL functions (e.g. DATEDIFF) is INT on some platforms, BIG_INT on others, and (b) dplyr often throws errors when working with both integer and numeric vectors.
+
+2. Reusing byte buffer when passing 64-bit integers from Java to R for efficiency.
+
+3. Adding support for connecting to Spark.
+
+4. Adding `renderTranslateQueryApplyBatched()` function.
+
+5. Throw informative error when provided `dbms` argument does not match any of the expected values.
+
+6. Adding `getAvailableJavaHeapSpace()` function for debugging purposes.
+
+Bugfixes: 
+
+1. Fixing field type of numeric fields on Oracle when fetching data.
+
+2. Fixing issues when fetching dates from SQLite (needed casting to numeric in some scenarios before conversion to date in R).
+
+3. Fixing `insertTable()` when using a `databaseSchema` argument on SQLite.
+
+4. Fixing `insertTable()` for inserting into temp table on RedShift when table name does not start with '#'.
+
+
 DatabaseConnector 4.0.2
 =======================
 
