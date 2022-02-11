@@ -1,6 +1,6 @@
 # @file DatabaseConnector.R
 #
-# Copyright 2021 Observational Health Data Sciences and Informatics
+# Copyright 2022 Observational Health Data Sciences and Informatics
 #
 # This file is part of DatabaseConnector
 #
@@ -19,7 +19,7 @@
 #' @keywords internal
 "_PACKAGE"
 
-#' @importFrom utils sessionInfo setTxtProgressBar txtProgressBar object.size write.csv write.table read.csv install.packages menu download.file unzip
+#' @importFrom utils sessionInfo setTxtProgressBar txtProgressBar object.size write.csv write.table read.csv install.packages menu download.file unzip packageVersion
 #' @importFrom bit64 integer64
 #' @importFrom rlang warn abort inform
 NULL

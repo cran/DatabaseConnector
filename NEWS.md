@@ -1,3 +1,39 @@
+DatabaseConnector 5.0.2
+=======================
+
+Changes:
+
+1. Updating Spark JDBC driver in response to Log4J vulnerability.
+
+2. Using new Andromeda functions for better abstraction.
+
+3. More informative error messages when user forgets to provide a connection property (like a password).
+
+4. Also deprecating `oracleTempSchema` in DBI functions.
+
+5. Adding `existsTable()` function.
+
+6. Splitting vignette into two, because many users will only need to now how to connect to their database.
+
+7. Improved error messaging related to the driver folder.
+
+Bugfixes:
+
+1. Fixing `getTableNames()` when the database or schema name contains escaped characters.
+
+
+DatabaseConnector 5.0.1
+=======================
+
+Changes:
+
+1. Added `dropEmulatedTempTables()` function.
+
+Bugfixes:
+
+1. Fixed R-Studio connection panel for BigQuery.
+
+
 DatabaseConnector 5.0.0
 =======================
 

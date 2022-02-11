@@ -1,4 +1,4 @@
-# Copyright 2021 Observational Health Data Sciences and Informatics
+# Copyright 2022 Observational Health Data Sciences and Informatics
 #
 # This file is part of DatabaseConnector
 #
@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#' Low level function for retrieving data to a local Andromeda database
+#' Low level function for retrieving data to a local Andromeda object
 #'
 #' @description
 #' This is the equivalent of the \code{\link{querySqlToAndromeda}} function, except no error report is
@@ -24,9 +24,9 @@
 #' @param query                The SQL statement to retrieve the data
 #' @param datesAsString        Should dates be imported as character vectors, our should they be
 #'                             converted to R's date format?
-#' @param andromeda            An open connection to a Andromeda database, for example as created using
+#' @param andromeda            An open Andromeda object, for example as created using
 #'                             \code{\link[Andromeda]{andromeda}}.
-#' @param andromedaTableName   The name of the table in the local Andromeda database where the results
+#' @param andromedaTableName   The name of the table in the local Andromeda object where the results
 #'                             of the query will be stored.
 #' @param integerAsNumeric     Logical: should 32-bit integers be converted to numeric (double) values?
 #'                             If FALSE 32-bit integers will be represented using R's native
@@ -36,13 +36,13 @@
 #'                             \code{bit64::integer64}.
 #'
 #' @details
-#' Retrieves data from the database server and stores it in a local Andromeda database This allows
+#' Retrieves data from the database server and stores it in a local Andromeda object This allows
 #' very large data sets to be retrieved without running out of memory. Null values in the database are
 #' converted to NA values in R. If a table with the same name already exists in the local Andromeda
-#' database it is replaced.
+#' object it is replaced.
 #'
 #' @return
-#' Invisibly returns the andromeda. The Andromeda database will have a table added with the query
+#' Invisibly returns the andromeda. The Andromeda object will have a table added with the query
 #' results.
 #'
 #' @export
@@ -102,13 +102,11 @@ lowLevelQuerySqlToAndromeda.default <- function(connection,
       integerAsNumeric = integerAsNumeric
     )
 
-    RSQLite::dbWriteTable(
-      conn = andromeda,
-      name = andromedaTableName,
-      value = batch,
-      overwrite = first,
-      append = !first
-    )
+    if (first) {
+      andromeda[[andromedaTableName]] <- batch
+    } else {
+      Andromeda::appendToTable(andromeda[[andromedaTableName]], batch)
+    }
     first <- FALSE
   }
   invisible(andromeda)
@@ -132,26 +130,20 @@ lowLevelQuerySqlToAndromeda.DatabaseConnectorDbiConnection <- function(connectio
     integer64AsNumeric = integer64AsNumeric
   )
 
-  RSQLite::dbWriteTable(
-    conn = andromeda,
-    name = andromedaTableName,
-    value = results,
-    overwrite = TRUE,
-    append = FALSE
-  )
+  andromeda[[andromedaTableName]] <- results
   invisible(andromeda)
 }
 
-#' Retrieves data to a local Andromeda database
+#' Retrieves data to a local Andromeda object
 #'
 #' @description
-#' This function sends SQL to the server, and returns the results in a local Andromeda database.
+#' This function sends SQL to the server, and returns the results in a local Andromeda object
 #'
 #' @param connection             The connection to the database server.
 #' @param sql                    The SQL to be sent.
-#' @param andromeda              An open connection to a Andromeda database, for example as created
+#' @param andromeda              An open connection to a Andromeda object, for example as created
 #'                               using \code{\link[Andromeda]{andromeda}}.
-#' @param andromedaTableName     The name of the table in the local Andromeda database where the
+#' @param andromedaTableName     The name of the table in the local Andromeda object where the
 #'                               results of the query will be stored.
 #' @param errorReportFile        The file where an error report will be written if an error occurs.
 #'                               Defaults to 'errorReportSql.txt' in the current working directory.
@@ -165,15 +157,15 @@ lowLevelQuerySqlToAndromeda.DatabaseConnectorDbiConnection <- function(connectio
 #'                               \code{bit64::integer64}.
 #'
 #' @details
-#' Retrieves data from the database server and stores it in a local Andromeda database. This allows
+#' Retrieves data from the database server and stores it in a local Andromeda object. This allows
 #' very large data sets to be retrieved without running out of memory. If an error occurs during SQL
 #' execution, this error is written to a file to facilitate debugging. Null values in the database are
 #' converted to NA values in R.If a table with the same name already exists in the local Andromeda
-#' database it is replaced.
+#' object it is replaced.
 #'
 #' @return
 #' @return
-#' Invisibly returns the andromeda. The Andromeda database will have a table added with the query
+#' Invisibly returns the andromeda. The Andromeda object will have a table added with the query
 #' results.
 #'
 #' @examples
@@ -216,8 +208,11 @@ querySqlToAndromeda <- function(connection,
   ) && rJava::is.jnull(connection@jConnection)) {
     stop("Connection is closed")
   }
-  if (!inherits(andromeda, "SQLiteConnection")) {
-    stop("The andromeda argument must be an Andromeda object (or SQLiteConnection objecT).")
+  if (!inherits(andromeda, "Andromeda")) {
+    stop("The andromeda argument must be an Andromeda object.")
+  }
+  if (packageVersion("Andromeda") < "0.6.0") {
+    stop(sprintf("Andromeda version 0.6.0 or higher required, but version %s found", packageVersion("Andromeda")))
   }
 
   # Calling splitSql, because this will also strip trailing semicolons (which cause Oracle to crash).
@@ -239,21 +234,12 @@ querySqlToAndromeda <- function(connection,
         integerAsNumeric = integerAsNumeric,
         integer64AsNumeric = integer64AsNumeric
       )
-      columnNames <- RSQLite::dbListFields(andromeda, andromedaTableName)
+      columnNames <- colnames(andromeda[[andromedaTableName]])
       newColumnNames <- toupper(columnNames)
       if (snakeCaseToCamelCase) {
         newColumnNames <- SqlRender::snakeCaseToCamelCase(newColumnNames)
       }
-      idx <- columnNames != newColumnNames
-      if (any(idx)) {
-        sql <- sprintf(
-          "ALTER TABLE %s RENAME COLUMN %s TO %s;",
-          andromedaTableName,
-          columnNames[idx],
-          newColumnNames[idx]
-        )
-        lapply(sql, function(x) RSQLite::dbExecute(andromeda, x))
-      }
+      names(andromeda[[andromedaTableName]]) <- newColumnNames
       invisible(andromeda)
     },
     error = function(err) {
@@ -270,18 +256,15 @@ querySqlToAndromeda <- function(connection,
 #'
 #' @param connection             The connection to the database server.
 #' @param sql                    The SQL to be send.
-#' @param andromeda              An open connection to a Andromeda database, for example as created
+#' @param andromeda              An open Andromeda object, for example as created
 #'                               using \code{\link[Andromeda]{andromeda}}.
-#' @param andromedaTableName     The name of the table in the local Andromeda database where the
+#' @param andromedaTableName     The name of the table in the local Andromeda object where the
 #'                               results of the query will be stored.
 #' @param errorReportFile        The file where an error report will be written if an error occurs.
 #'                               Defaults to 'errorReportSql.txt' in the current working directory.
 #' @param snakeCaseToCamelCase   If true, field names are assumed to use snake_case, and are converted
 #'                               to camelCase.
-#' @param oracleTempSchema       DEPRECATED: use \code{tempEmulationSchema} instead.
-#' @param tempEmulationSchema    Some database platforms like Oracle and Impala do not truly support
-#'                               temp tables. To emulate temp tables, provide a schema with write
-#'                               privileges where temp tables can be created.
+#' @template TempEmulationSchema
 #' @param integerAsNumeric       Logical: should 32-bit integers be converted to numeric (double)
 #'                               values? If FALSE 32-bit integers will be represented using R's native
 #'                               \code{Integer} class.
@@ -295,7 +278,7 @@ querySqlToAndromeda <- function(connection,
 #' before calling \code{\link{querySqlToAndromeda}}.
 #'
 #' @return
-#' Invisibly returns the andromeda. The Andromeda database will have a table added with the query
+#' Invisibly returns the andromeda. The Andromeda object will have a table added with the query
 #' results.
 #'
 #' @examples

@@ -11,6 +11,7 @@ test_that("Get table names", {
   connection <- connect(details)
   tables <- getTableNames(connection, Sys.getenv("CDM5_POSTGRESQL_CDM_SCHEMA"))
   expect_true("PERSON" %in% tables)
+  expect_true(existsTable(connection, Sys.getenv("CDM5_POSTGRESQL_CDM_SCHEMA"), "person"))
   disconnect(connection)
 
   # SQL Server --------------------------------------------------
@@ -23,6 +24,7 @@ test_that("Get table names", {
   connection <- connect(details)
   tables <- getTableNames(connection, Sys.getenv("CDM5_SQL_SERVER_CDM_SCHEMA"))
   expect_true("PERSON" %in% tables)
+  expect_true(existsTable(connection, Sys.getenv("CDM5_SQL_SERVER_CDM_SCHEMA"), "person"))
   disconnect(connection)
 
   # Oracle --------------------------------------------------
@@ -35,6 +37,7 @@ test_that("Get table names", {
   connection <- connect(details)
   tables <- getTableNames(connection, Sys.getenv("CDM5_ORACLE_CDM_SCHEMA"))
   expect_true("PERSON" %in% tables)
+  expect_true(existsTable(connection, Sys.getenv("CDM5_ORACLE_CDM_SCHEMA"), "person"))
   disconnect(connection)
 
   # Sqlite --------------------------------------------------
@@ -47,6 +50,7 @@ test_that("Get table names", {
   executeSql(connection, "CREATE TABLE person (x INT);")
   tables <- getTableNames(connection, "main")
   expect_true("PERSON" %in% tables)
+  expect_true(existsTable(connection, "main", "person"))
   disconnect(connection)
   unlink(dbFile)
 
@@ -60,5 +64,12 @@ test_that("Get table names", {
   connection <- connect(details)
   tables <- getTableNames(connection, Sys.getenv("CDM5_REDSHIFT_CDM_SCHEMA"))
   expect_true("PERSON" %in% tables)
+  expect_true(existsTable(connection, Sys.getenv("CDM5_REDSHIFT_CDM_SCHEMA"), "person"))
   disconnect(connection)
+})
+
+test_that("Cleaning of database or schema name", {
+  expect_equivalent(cleanSchemaName("[test\\name]"), "test\\\\name")
+  expect_equivalent(cleanSchemaName("\"test\\name\""), "test\\\\name")
+  expect_equivalent(cleanDatabaseName("test\\name"), "test\\name")
 })

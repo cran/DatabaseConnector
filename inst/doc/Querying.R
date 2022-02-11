@@ -1,50 +1,11 @@
 ## ---- echo = FALSE, message = FALSE-------------------------------------------
 library(DatabaseConnector)
-oldJarFolder <- Sys.getenv("DATABASECONNECTOR_JAR_FOLDER")
-Sys.setenv("DATABASECONNECTOR_JAR_FOLDER" = tempdir())
-
-## ----eval=FALSE---------------------------------------------------------------
-#  Sys.setenv("DATABASECONNECTOR_JAR_FOLDER" = "c:/temp/jdbcDrivers")
-
-## ----eval=FALSE---------------------------------------------------------------
-#  downloadJdbcDrivers("postgresql")
-
-## ----echo=FALSE---------------------------------------------------------------
-writeLines("DatabaseConnector JDBC drivers downloaded to 'c:/temp/jdbcDrivers'.")
-
-## ----eval=FALSE---------------------------------------------------------------
-#  ?jdbcDrivers
-
-## ----eval=FALSE---------------------------------------------------------------
-#  install.packages("RSQLite")
 
 ## ----eval=FALSE---------------------------------------------------------------
 #  conn <- connect(dbms = "postgresql",
 #                  server = "localhost/postgres",
 #                  user = "joe",
 #                  password = "secret")
-
-## ----echo=FALSE---------------------------------------------------------------
-writeLines("Connecting using PostgreSQL driver")
-
-## ----eval=FALSE---------------------------------------------------------------
-#  disconnect(conn)
-
-## ----eval=FALSE---------------------------------------------------------------
-#  conn <- connect(dbms = "postgresql",
-#                  connectionString = "jdbc:postgresql://localhost:5432/postgres",
-#                  user = "joe",
-#                  password = "secret")
-
-## ----echo=FALSE---------------------------------------------------------------
-writeLines("Connecting using PostgreSQL driver")
-
-## ----eval=FALSE---------------------------------------------------------------
-#  details <- createConnectionDetails(dbms = "postgresql",
-#                                     server = "localhost/postgres",
-#                                     user = "joe",
-#                                     password = "secret")
-#  conn <- connect(details)
 
 ## ----echo=FALSE---------------------------------------------------------------
 writeLines("Connecting using PostgreSQL driver")
@@ -61,7 +22,10 @@ data.frame(PERSON_ID = c(1,2,3), GENDER_CONCEPT_ID = c(8507, 8507, 8507), YEAR_O
 ## ----eval=FALSE---------------------------------------------------------------
 #  library(Andromeda)
 #  x <- andromeda()
-#  querySqlToAndromeda(conn, "SELECT * FROM person", andromeda = x, andromedaTableName = "person)
+#  querySqlToAndromeda(connection = conn,
+#                      sql = "SELECT * FROM person",
+#                      andromeda = x,
+#                      andromedaTableName = "person")
 
 ## ----eval=FALSE---------------------------------------------------------------
 #  persons <- renderTranslatequerySql(conn,
@@ -104,19 +68,4 @@ TRUE
 ## ----eval=FALSE---------------------------------------------------------------
 #  dbClearResult(res)
 #  dbDisconnect(res)
-
-## -----------------------------------------------------------------------------
-conn <- connect(dbms = "sqlite", server = tempfile())
-
-# Upload cars dataset as table:
-insertTable(connection = conn, 
-            tableName = "cars", 
-            data = cars)
-
-querySql(conn, "SELECT COUNT(*) FROM main.cars;")
-
-disconnect(conn)
-
-## ---- echo = FALSE, message = FALSE-------------------------------------------
-Sys.setenv("DATABASECONNECTOR_JAR_FOLDER" = oldJarFolder)
 
