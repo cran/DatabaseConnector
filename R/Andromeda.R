@@ -164,7 +164,6 @@ lowLevelQuerySqlToAndromeda.DatabaseConnectorDbiConnection <- function(connectio
 #' object it is replaced.
 #'
 #' @return
-#' @return
 #' Invisibly returns the andromeda. The Andromeda object will have a table added with the query
 #' results.
 #'
@@ -226,7 +225,7 @@ querySqlToAndromeda <- function(connection,
   }
   tryCatch(
     {
-      lowLevelQuerySqlToAndromeda(
+      andromeda <- lowLevelQuerySqlToAndromeda(
         connection = connection,
         query = sqlStatements[1],
         andromeda = andromeda,
