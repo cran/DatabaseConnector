@@ -1,8 +1,8 @@
 Package: DatabaseConnector
 Type: Package
 Title: Connecting to Various Database Platforms
-Version: 5.0.3
-Date: 2022-06-07
+Version: 5.0.4
+Date: 2022-06-28
 Authors@R: c(
     person("Martijn", "Schuemie", email = "schuemie@ohdsi.org", role = c("aut", "cre")),
     person("Marc", "Suchard", role = c("aut")),
@@ -30,7 +30,7 @@ Copyright: See file COPYRIGHTS
 RoxygenNote: 7.2.0
 Encoding: UTF-8
 NeedsCompilation: no
-Packaged: 2022-06-08 13:38:41 UTC; mschuemi
+Packaged: 2022-06-28 13:26:57 UTC; mschuemi
 Author: Martijn Schuemie [aut, cre],
   Marc Suchard [aut],
   Observational Health Data Science and Informatics [cph],
@@ -40,4 +40,4 @@ Author: Martijn Schuemie [aut, cre],
   Amazon Inc. [cph] (RedShift JDBC driver)
 Maintainer: Martijn Schuemie <schuemie@ohdsi.org>
 Repository: CRAN
-Date/Publication: 2022-06-08 14:00:04 UTC
+Date/Publication: 2022-06-28 13:40:02 UTC
