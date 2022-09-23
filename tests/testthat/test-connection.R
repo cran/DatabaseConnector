@@ -10,17 +10,19 @@ test_that("Open and close connection", {
   )
   connection <- connect(details)
   expect_true(inherits(connection, "DatabaseConnectorConnection"))
+  expect_equal(dbms(connection), "postgresql")
   expect_true(disconnect(connection))
 
   # SQL Server --------------------------------------------------
   details <- createConnectionDetails(
     dbms = "sql server",
-    user = Sys.getenv("CDM5_SQL_SERVER_USER"),
+    user = Sys.getenv("CDM5_SQL_SERVER_USER"),    
     password = URLdecode(Sys.getenv("CDM5_SQL_SERVER_PASSWORD")),
     server = Sys.getenv("CDM5_SQL_SERVER_SERVER")
   )
   connection <- connect(details)
   expect_true(inherits(connection, "DatabaseConnectorConnection"))
+  expect_equal(dbms(connection), "sql server")
   expect_true(disconnect(connection))
 
   # Oracle --------------------------------------------------
@@ -32,6 +34,7 @@ test_that("Open and close connection", {
   )
   connection <- connect(details)
   expect_true(inherits(connection, "DatabaseConnectorConnection"))
+  expect_equal(dbms(connection), "oracle")
   expect_true(disconnect(connection))
 
   # RedShift  --------------------------------------------------
@@ -43,6 +46,7 @@ test_that("Open and close connection", {
   )
   connection <- connect(details)
   expect_true(inherits(connection, "DatabaseConnectorConnection"))
+  expect_equal(dbms(connection), "redshift")
   expect_true(disconnect(connection))
 })
 
@@ -134,20 +138,38 @@ test_that("Open and close connection using connection strings with embedded user
   expect_true(disconnect(connection))
 
   # Spark --------------------------------------------------
-  connectionString <- sprintf(
-    "%s;UID=%s;PWD=%s",
-    Sys.getenv("CDM5_SPARK_CONNECTION_STRING"),
-    Sys.getenv("CDM5_SPARK_USER"),
-    URLdecode(Sys.getenv("CDM5_SPARK_PASSWORD"))
-  )
+  # Disabling Spark unit tests until new testing server is up
+  # connectionString <- sprintf(
+  #   "%s;UID=%s;PWD=%s",
+  #   Sys.getenv("CDM5_SPARK_CONNECTION_STRING"),
+  #   Sys.getenv("CDM5_SPARK_USER"),
+  #   URLdecode(Sys.getenv("CDM5_SPARK_PASSWORD"))
+  # )
+  # 
+  # details <- createConnectionDetails(
+  #   dbms = "spark",
+  #   connectionString = connectionString
+  # )
+  # connection <- connect(details)
+  # expect_true(inherits(connection, "DatabaseConnectorConnection"))
+  # expect_true(disconnect(connection))
 
-  details <- createConnectionDetails(
-    dbms = "spark",
-    connectionString = connectionString
-  )
-  connection <- connect(details)
-  expect_true(inherits(connection, "DatabaseConnectorConnection"))
-  expect_true(disconnect(connection))
+  # Snowflake --------------------------------------------------
+  # Disable Snowflake unit tests until we have a testing server
+  # connectionString <- sprintf(
+  #   "%s;UID=%s;PWD=%s",
+  #   Sys.getenv("CDM5_SNOWFLAKE_CONNECTION_STRING"),
+  #   Sys.getenv("CDM5_SNOWFLAKE_USER"),
+  #   URLdecode(Sys.getenv("CDM5_SNOWFLAKE_PASSWORD"))
+  # )
+  # 
+  # details <- createConnectionDetails(
+  #   dbms = "snowflake",
+  #   connectionString = connectionString
+  # )
+  # connection <- connect(details)
+  # expect_true(inherits(connection, "DatabaseConnectorConnection"))
+  # expect_true(disconnect(connection))
 })
 
 test_that("Open and close connection using connection strings with separate user and pw", {
@@ -219,15 +241,29 @@ test_that("Open and close connection using connection strings with separate user
   expect_true(disconnect(connection))
 
   # Spark --------------------------------------------------
-  details <- createConnectionDetails(
-    dbms = "spark",
-    connectionString = Sys.getenv("CDM5_SPARK_CONNECTION_STRING"),
-    user = Sys.getenv("CDM5_SPARK_USER"),
-    password = URLdecode(Sys.getenv("CDM5_SPARK_PASSWORD"))
-  )
-  connection <- connect(details)
-  expect_true(inherits(connection, "DatabaseConnectorConnection"))
-  expect_true(disconnect(connection))
+  # Disabling Spark unit tests until new testing server is up
+  # details <- createConnectionDetails(
+  #   dbms = "spark",
+  #   connectionString = Sys.getenv("CDM5_SPARK_CONNECTION_STRING"),
+  #   user = Sys.getenv("CDM5_SPARK_USER"),
+  #   password = URLdecode(Sys.getenv("CDM5_SPARK_PASSWORD"))
+  # )
+  # connection <- connect(details)
+  # expect_true(inherits(connection, "DatabaseConnectorConnection"))
+  # expect_equal(dbms(connection), "spark")
+  # expect_true(disconnect(connection))
+
+  # Snowflake --------------------------------------------------
+  # Disable Snowflake unit tests until we have a testing server
+  # details <- createConnectionDetails(
+  #   dbms = "snowflake",
+  #   connectionString = Sys.getenv("CDM5_SNOWFLAKE_CONNECTION_STRING"),
+  #   user = Sys.getenv("CDM5_SNOWFLAKE_USER"),
+  #   password = URLdecode(Sys.getenv("CDM5_SNOWFLAKE_PASSWORD"))
+  # )
+  # connection <- connect(details)
+  # expect_true(inherits(connection, "DatabaseConnectorConnection"))
+  # expect_true(disconnect(connection))
 })
 
 test_that("Error is thrown when using incorrect dbms argument", {
@@ -246,4 +282,28 @@ test_that("Error is thrown when forgetting password", {
     server = Sys.getenv("CDM5_POSTGRESQL_SERVER")
   )
   expect_error(connection <- connect(details), "Connection propery 'password' is NULL")
+})
+
+
+test_that("dbms function maps DBI connections to correct SQL dialect", {
+  
+  mappings <- c(
+    'Microsoft SQL Server' = 'sql server',
+    'PqConnection' = 'postgresql',
+    'RedshiftConnection' = 'redshift',
+    'BigQueryConnection' = 'bigquery',
+    'SQLiteConnection' = 'sqlite',
+    'duckdb_connection'  = 'duckdb')
+  
+  
+  for(i in seq_along(mappings)) {
+    driver <- names(mappings)[i]
+    dialect <- unname(mappings)[i]
+    mockConstructor <- setClass(driver, contains = "DBIConnection")
+    mockConnection <- mockConstructor()
+    expect_equal(dbms(mockConnection), dialect)
+    
+    # duckdb is not yet supported in the current release of SqlRender
+    if(dialect != "duckdb") expect_error(checkIfDbmsIsSupported(dbms(mockConnection)), NA)
+  }
 })

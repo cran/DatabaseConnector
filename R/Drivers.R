@@ -28,9 +28,10 @@ jdbcDrivers <- new.env()
 #'      \itemize{
 #'          \item{"postgresql" for PostgreSQL}
 #'          \item{"redshift" for Amazon Redshift}
-#'          \item{"sql server" or "pdw" for Microsoft SQL Server}
+#'          \item{"sql server", "pdw" or "synapse" for Microsoft SQL Server}
 #'          \item{"oracle" for Oracle}
 #'          \item{"spark" for Spark}
+#'          \item{"snowflake" for Snowflake}
 #'      }
 #' @param method The method used for downloading files. See \code{?download.file} for details and options.
 #' @param ... Further arguments passed on to \code{download.file}
@@ -39,10 +40,11 @@ jdbcDrivers <- new.env()
 #' The following versions of the JDBC drivers are currently used:
 #' \itemize{
 #'   \item{PostgreSQL}{V42.2.18}
-#'   \item{RedShift}{V1.2.27.1051}
+#'   \item{RedShift}{V2.1.0.9}
 #'   \item{SQL Server}{V8.4.1.zip}
 #'   \item{Oracle}{V19.8}
 #'   \item{Spark}{V2.6.21}
+#'   \item{Snowflake}{V3.13.22}
 #' }
 #'
 #' @return Invisibly returns the destination if the download was successful.
@@ -78,9 +80,9 @@ downloadJdbcDrivers <- function(dbms, pathToDriver = Sys.getenv("DATABASECONNECT
     dir.create(pathToDriver, recursive = TRUE)
   }
 
-  stopifnot(is.character(dbms), length(dbms) == 1, dbms %in% c("all", "postgresql", "redshift", "sql server", "oracle", "pdw", "spark"))
+  stopifnot(is.character(dbms), length(dbms) == 1, dbms %in% c("all", "postgresql", "redshift", "sql server", "oracle", "pdw", "snowflake", "spark"))
 
-  if (dbms == "pdw") {
+  if (dbms == "pdw" || dbms == "synapse") {
     dbms <- "sql server"
   }
 
@@ -88,17 +90,28 @@ downloadJdbcDrivers <- function(dbms, pathToDriver = Sys.getenv("DATABASECONNECT
 
   jdbcDriverNames <- c(
     "postgresql" = "postgresqlV42.2.18.zip",
-    "redshift" = "redShiftV1.2.27.1051.zip",
+    "redshift" = "redShiftV2.1.0.9.zip",
     "sql server" = "sqlServerV9.2.0.zip",
     "oracle" = "oracleV19.8.zip",
-    "spark" = "SimbaSparkV2.6.21.zip"
+    "spark" = "SimbaSparkV2.6.21.zip",
+    "snowflake" = "SnowflakeV3.13.22.zip"
   )
-
+  
   if (dbms == "all") {
     dbms <- names(jdbcDriverNames)
   }
 
   for (db in dbms) {
+    if (db == "redshift") {
+      oldFiles <- list.files(pathToDriver, "Redshift")
+      if (length(oldFiles) > 0) {
+        message(sprintf("Prior JAR files have already been detected: '%s'. Do you want to delete them?", paste(oldFiles, collapse = "', '")))
+        if (utils::menu(c("Yes", "No")) == 1) {
+          unlink(file.path(pathToDriver, oldFiles))
+        }
+      }
+    }
+    
     driverName <- jdbcDriverNames[[db]]
     result <- download.file(
       url = paste0(baseUrl, driverName),
