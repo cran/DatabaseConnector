@@ -204,16 +204,16 @@ insertTable.default <- function(connection,
   dbms <- dbms(connection)
   if (!is.null(useMppBulkLoad) && useMppBulkLoad != "") {
     warn("The 'useMppBulkLoad' argument is deprecated. Use 'bulkLoad' instead.",
-      .frequency = "regularly",
-      .frequency_id = "useMppBulkLoad"
+         .frequency = "regularly",
+         .frequency_id = "useMppBulkLoad"
     )
     bulkLoad <- useMppBulkLoad
   }
   bulkLoad <- (!is.null(bulkLoad) && bulkLoad == "TRUE")
   if (!is.null(oracleTempSchema) && oracleTempSchema != "") {
     warn("The 'oracleTempSchema' argument is deprecated. Use 'tempEmulationSchema' instead.",
-      .frequency = "regularly",
-      .frequency_id = "oracleTempSchema"
+         .frequency = "regularly",
+         .frequency_id = "oracleTempSchema"
     )
     tempEmulationSchema <- oracleTempSchema
   }
@@ -264,7 +264,7 @@ insertTable.default <- function(connection,
   sqlTableDefinition <- paste(.sql.qescape(names(data), TRUE), sqlDataTypes, collapse = ", ")
   sqlTableName <- .sql.qescape(tableName, TRUE, quote = "")
   sqlFieldNames <- paste(.sql.qescape(names(data), TRUE), collapse = ",")
-
+  
   if (dropTableIfExists) {
     sql <- "DROP TABLE IF EXISTS @tableName;"
     renderTranslateExecuteSql(
@@ -276,7 +276,7 @@ insertTable.default <- function(connection,
       reportOverallTime = FALSE
     )
   }
-
+  
   if (createTable && !useCtasHack && !(bulkLoad && dbms == "hive")) {
     sql <- paste("CREATE TABLE ", sqlTableName, " (", sqlTableDefinition, ");", sep = "")
     renderTranslateExecuteSql(
@@ -287,7 +287,7 @@ insertTable.default <- function(connection,
       reportOverallTime = FALSE
     )
   }
-
+  
   if (useBulkLoad) {
     # Inserting using bulk upload for MPP ------------------------------------------------
     if (!checkBulkLoadCredentials(connection)) {
@@ -313,7 +313,7 @@ insertTable.default <- function(connection,
     if (any(sqlDataTypes == "BIGINT")) {
       validateInt64Insert()
     }
-
+    
     insertSql <- paste0(
       "INSERT INTO ",
       sqlTableName,
@@ -324,11 +324,11 @@ insertTable.default <- function(connection,
       ")"
     )
     insertSql <- SqlRender::translate(insertSql,
-      targetDialect = dbms,
-      tempEmulationSchema = tempEmulationSchema
+                                      targetDialect = dbms,
+                                      tempEmulationSchema = tempEmulationSchema
     )
     batchSize <- 10000
-
+    
     if (nrow(data) > 0) {
       if (progressBar) {
         pb <- txtProgressBar(style = 3)
@@ -338,8 +338,7 @@ insertTable.default <- function(connection,
         connection@jConnection,
         connection@dbms,
         insertSql,
-        ncol(data),
-        supportsAutoCommit(dbms)
+        ncol(data)
       )
       for (start in seq(1, nrow(data), by = batchSize)) {
         if (progressBar) {
@@ -368,12 +367,8 @@ insertTable.default <- function(connection,
           return(NULL)
         }
         lapply(1:ncol(data), setColumn, start = start, end = end)
-        if (dbms == "bigquery") {
-          if (!rJava::.jcall(batchedInsert, "Z", "executeBigQueryBatch"))
-            stop("Error uploading data")
-        } else {
-          if (!rJava::.jcall(batchedInsert, "Z", "executeBatch"))
-            stop("Error uploading data")
+        if (!rJava::.jcall(batchedInsert, "Z", "executeBatch")) {
+          stop("Error uploading data")
         }
       }
       if (progressBar) {
@@ -400,6 +395,13 @@ insertTable.DatabaseConnectorDbiConnection <- function(connection,
                                                        useMppBulkLoad = Sys.getenv("USE_MPP_BULK_LOAD"),
                                                        progressBar = FALSE,
                                                        camelCaseToSnakeCase = FALSE) {
+  if (!is.null(oracleTempSchema) && oracleTempSchema != "") {
+    warn("The 'oracleTempSchema' argument is deprecated. Use 'tempEmulationSchema' instead.",
+         .frequency = "regularly",
+         .frequency_id = "oracleTempSchema"
+    )
+    tempEmulationSchema <- oracleTempSchema
+  }
   if (camelCaseToSnakeCase) {
     colnames(data) <- SqlRender::camelCaseToSnakeCase(colnames(data))
   }
@@ -408,7 +410,7 @@ insertTable.DatabaseConnectorDbiConnection <- function(connection,
     # warn("Temp table name detected, setting tempTable parameter to TRUE")
   }
   isSqlReservedWord(c(tableName, colnames(data)), warn = TRUE)
-
+  
   tableName <- gsub("^#", "", tableName)
   if (dbms(connection) == "sqlite") {
     # Convert dates and datetime to UNIX timestamp:
@@ -421,6 +423,20 @@ insertTable.DatabaseConnectorDbiConnection <- function(connection,
         data[, i] <- as.numeric(as.POSIXct(column, origin = "1970-01-01", tz = "GMT"))
       }
     }
+  }
+  if (dbms(connection) == "spark") {
+    # Spark automatically converts table names to lowercase, but will throw an error
+    # that the table already exists when using dbWriteTable to append, and the table 
+    # name is not all lowercase.
+    tableName <- tolower(tableName)
+    
+    if (tempTable) {
+      #Spark does not support temp tables, so emulate
+      databaseSchema = tempEmulationSchema
+      tableName <- SqlRender::translate(sprintf("#%s", tableName), targetDialect = "spark", tempEmulationSchema = NULL)
+      tempTable <- FALSE
+    }
+    
   }
   data <- convertLogicalFields(data)
   
