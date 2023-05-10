@@ -42,6 +42,17 @@ testDbplyrFunctions <- function(connectionDetails, cdmDatabaseSchema) {
     collect()
   expect_gt(nrow(topAges), 1)
   
+  # Test copy_inline -----------------------------------------------------------
+  rows <- dbplyr::copy_inline(connection, mtcars) %>% 
+    filter(hp > 200) %>%
+    arrange(wt, mpg) %>%
+    collect()
+  rows2 <- mtcars %>% 
+    filter(hp > 200) %>%
+    arrange(wt, mpg) %>%
+    collect()
+  expect_equivalent(rows, rows2, tolerance = 1e-6)
+
   # Test slicing ---------------------------------------------------------------
   personSample <- person %>%
     slice_sample(n = 10) %>%
@@ -81,6 +92,16 @@ testDbplyrFunctions <- function(connectionDetails, cdmDatabaseSchema) {
     collect()
   expect_equal(nrow(filteredRow), 1)
   
+  aPersonId <- person %>%
+    head(1) %>%
+    pull(person_id)
+  localTable = tibble(person_id = aPersonId, person_name = "Pedro")
+  remoteTable <- copy_to(connection, localTable, overwrite = TRUE)
+  result <- remoteTable %>%
+    left_join(person, by = join_by(person_id)) %>%
+    collect()
+  expect_equal(result$person_name, "Pedro")
+  
   # Test joins and unions ------------------------------------------------------
   
   # Casting duration to numeric because platforms like SQL Server compute the mean by first computing the sum, which
@@ -113,6 +134,14 @@ testDbplyrFunctions <- function(connectionDetails, cdmDatabaseSchema) {
     count() %>%
     collect()
   expect_gt(personTwice$n, 1)
+  
+  tripleJoin <- person %>%
+    left_join(observationPeriod, by = join_by(person_id)) %>%
+    left_join(observationPeriod %>%
+                select(person_id, dummy = observation_period_start_date),
+                by = join_by(person_id)) %>%
+    collect()
+  expect_gt(nrow(tripleJoin), 0)
   
   # Test row_number ------------------------------------------------------------
   top10PersonsHardWay <- person %>%
@@ -152,4 +181,5 @@ testDbplyrFunctions <- function(connectionDetails, cdmDatabaseSchema) {
   
   dropEmulatedTempTables(connection)
   # disconnect(connection)
+  invisible(NULL)
 }
