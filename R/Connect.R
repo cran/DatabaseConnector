@@ -760,6 +760,14 @@ connectUsingJdbcDriver <- function(jdbcDriver,
       abort(paste0("Unable to connect JDBC to ", url, " (", rJava::.jcall(x, "S", "getMessage"), ")"))
     }
   }
+  ensureDatabaseConnectorConnectionClassExists()
+  class <- getClassDef("DatabaseConnectorJdbcConnection", where = class_cache, inherits = FALSE)
+  if (is.null(class) || methods::isVirtualClass(class)) {
+    setClass("DatabaseConnectorJdbcConnection",
+             contains = "DatabaseConnectorConnection", 
+             slots = list(jConnection = "jobjRef"),
+             where = class_cache)
+  }
   connection <- new("DatabaseConnectorJdbcConnection",
     jConnection = jConnection,
     identifierQuote = "",
@@ -772,10 +780,41 @@ connectUsingJdbcDriver <- function(jdbcDriver,
   return(connection)
 }
 
+ensureDatabaseConnectorConnectionClassExists <- function() {
+  class <- getClassDef("Microsoft SQL Server", where = class_cache, inherits = FALSE)
+  if (is.null(class) || methods::isVirtualClass(class)) {
+    setClass("Microsoft SQL Server",
+             where = class_cache)
+  }
+  class <- getClassDef("DatabaseConnectorConnection", where = class_cache, inherits = FALSE)
+  if (is.null(class) || methods::isVirtualClass(class)) {
+    setClass("DatabaseConnectorConnection", 
+             contains = c("Microsoft SQL Server", "DBIConnection"),
+             slots = list(
+               identifierQuote = "character",
+               stringQuote = "character",
+               dbms = "character",
+               uuid = "character"
+             ),
+             where = class_cache)
+  }
+}
+
 connectUsingDbi <- function(dbiConnectionDetails) {
   dbms <- dbiConnectionDetails$dbms
   dbiConnectionDetails$dbms <- NULL
   dbiConnection <- do.call(DBI::dbConnect, dbiConnectionDetails)
+  ensureDatabaseConnectorConnectionClassExists()
+  class <- getClassDef("DatabaseConnectorDbiConnection", where = class_cache, inherits = FALSE)
+  if (is.null(class) || methods::isVirtualClass(class)) {
+    setClass("DatabaseConnectorDbiConnection",
+             contains = "DatabaseConnectorConnection", 
+             slots = list(
+               dbiConnection = "DBIConnection",
+               server = "character"
+             ),
+             where = class_cache)
+  }
   connection <- new("DatabaseConnectorDbiConnection",
     server = dbms,
     dbiConnection = dbiConnection,

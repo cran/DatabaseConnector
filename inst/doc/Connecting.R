@@ -12,6 +12,7 @@ library(DatabaseConnector)
 #  Sys.setenv("DATABASECONNECTOR_JAR_FOLDER" = "c:/temp/jdbcDrivers")
 
 ## ----eval=FALSE---------------------------------------------------------------
+#  library(DatabaseConnector)
 #  downloadJdbcDrivers("postgresql")
 
 ## ----echo=FALSE---------------------------------------------------------------
@@ -19,6 +20,7 @@ writeLines("DatabaseConnector JDBC drivers downloaded to 'c:/temp/jdbcDrivers'."
 
 ## ----eval=FALSE---------------------------------------------------------------
 #  install.packages("RSQLite")
+#  install.packages("duckdb")
 
 ## ----eval=FALSE---------------------------------------------------------------
 #  conn <- connect(dbms = "postgresql",

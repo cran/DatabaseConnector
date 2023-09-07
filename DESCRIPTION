@@ -1,8 +1,8 @@
 Package: DatabaseConnector
 Type: Package
 Title: Connecting to Various Database Platforms
-Version: 6.2.3
-Date: 2023-06-28
+Version: 6.2.4
+Date: 2023-09-07
 Authors@R: c(
     person("Martijn", "Schuemie", email = "schuemie@ohdsi.org", role = c("aut", "cre")),
     person("Marc", "Suchard", role = c("aut")),
@@ -17,7 +17,7 @@ Description: An R 'DataBase Interface' ('DBI') compatible interface to various d
     fetching data as 'Andromeda' objects. Uses either 'Java Database Connectivity' ('JDBC') or other 'DBI' drivers to connect to databases.
 SystemRequirements: Java (>= 8)
 Depends: R (>= 4.0.0)
-Imports: rJava, SqlRender (>= 1.15.0), methods, stringr, readr, rlang,
+Imports: rJava, SqlRender (>= 1.15.2), methods, stringr, readr, rlang,
         utils, DBI (>= 1.0.0), urltools, bit64, checkmate, digest,
         dbplyr (>= 2.2.0)
 Suggests: aws.s3, R.utils, withr, testthat, DBItest, knitr, rmarkdown,
@@ -32,7 +32,7 @@ Copyright: See file COPYRIGHTS
 RoxygenNote: 7.2.3
 Encoding: UTF-8
 NeedsCompilation: no
-Packaged: 2023-06-29 04:10:12 UTC; MSCHUEMI
+Packaged: 2023-09-07 07:51:13 UTC; MSCHUEMI
 Author: Martijn Schuemie [aut, cre],
   Marc Suchard [aut],
   Observational Health Data Science and Informatics [cph],
@@ -42,4 +42,4 @@ Author: Martijn Schuemie [aut, cre],
   Amazon Inc. [cph] (RedShift JDBC driver)
 Maintainer: Martijn Schuemie <schuemie@ohdsi.org>
 Repository: CRAN
-Date/Publication: 2023-06-29 22:40:11 UTC
+Date/Publication: 2023-09-07 09:20:08 UTC
