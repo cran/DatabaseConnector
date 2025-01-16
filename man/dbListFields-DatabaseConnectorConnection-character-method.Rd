@@ -7,7 +7,7 @@
 \S4method{dbListFields}{DatabaseConnectorConnection,character}(conn, name, databaseSchema = NULL, ...)
 }
 \arguments{
-\item{conn}{A \linkS4class{DBIConnection} object, as returned by
+\item{conn}{A \link[DBI:DBIConnection-class]{DBIConnection} object, as returned by
 \code{\link[DBI:dbConnect]{dbConnect()}}.}
 
 \item{name}{The table name, passed on to \code{\link[DBI:dbQuoteIdentifier]{dbQuoteIdentifier()}}. Options are:
@@ -35,7 +35,6 @@ The returned names are suitable for quoting with \code{dbQuoteIdentifier()}.
 \description{
 Returns the field names of a remote table as a character vector.
 
-\Sexpr[results=rd,stage=render]{DBI:::methods_as_rd("dbListFields")}
 }
 \details{
 The \code{databaseSchema} argument is interpreted differently according to the different platforms:
@@ -50,7 +49,9 @@ specify the schema.
 Other DBIConnection generics: 
 \code{\link[DBI]{DBIConnection-class}},
 \code{\link[DBI]{dbAppendTable}()},
+\code{\link[DBI]{dbAppendTableArrow}()},
 \code{\link[DBI]{dbCreateTable}()},
+\code{\link[DBI]{dbCreateTableArrow}()},
 \code{\link[DBI]{dbDataType}()},
 \code{\link[DBI]{dbDisconnect}()},
 \code{\link[DBI]{dbExecute}()},
@@ -58,14 +59,20 @@ Other DBIConnection generics:
 \code{\link[DBI]{dbGetException}()},
 \code{\link[DBI]{dbGetInfo}()},
 \code{\link[DBI]{dbGetQuery}()},
+\code{\link[DBI]{dbGetQueryArrow}()},
 \code{\link[DBI]{dbIsReadOnly}()},
 \code{\link[DBI]{dbIsValid}()},
 \code{\link[DBI]{dbListObjects}()},
 \code{\link[DBI]{dbListResults}()},
 \code{\link[DBI]{dbListTables}()},
+\code{\link[DBI]{dbQuoteIdentifier}()},
 \code{\link[DBI]{dbReadTable}()},
+\code{\link[DBI]{dbReadTableArrow}()},
 \code{\link[DBI]{dbRemoveTable}()},
 \code{\link[DBI]{dbSendQuery}()},
+\code{\link[DBI]{dbSendQueryArrow}()},
 \code{\link[DBI]{dbSendStatement}()},
-\code{\link[DBI]{dbWriteTable}()}
+\code{\link[DBI]{dbUnquoteIdentifier}()},
+\code{\link[DBI]{dbWriteTable}()},
+\code{\link[DBI]{dbWriteTableArrow}()}
 }

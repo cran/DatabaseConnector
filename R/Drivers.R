@@ -1,6 +1,6 @@
 # @file Drivers.R
 #
-# Copyright 2023 Observational Health Data Sciences and Informatics
+# Copyright 2025 Observational Health Data Sciences and Informatics
 #
 # This file is part of DatabaseConnector
 #
@@ -41,12 +41,12 @@ jdbcDrivers <- new.env()
 #' @details
 #' The following versions of the JDBC drivers are currently used:
 #' 
-#' - PostgreSQL: V42.2.18
+#' - PostgreSQL: V42.7.3
 #' - RedShift: V2.1.0.9
 #' - SQL Server: V9.2.0
 #' - Oracle: V19.8
-#' - Spark: V2.6.21
-#' - Snowflake: V3.13.22
+#' - Spark (Databricks): V2.6.36
+#' - Snowflake: V3.16.01
 #' - BigQuery: v1.3.2.1003
 #' 
 #' @return Invisibly returns the destination if the download was successful.
@@ -60,7 +60,7 @@ downloadJdbcDrivers <- function(dbms, pathToDriver = Sys.getenv("DATABASECONNECT
   if (is.null(pathToDriver) || is.na(pathToDriver) || pathToDriver == "") {
     abort("The pathToDriver argument must be specified. Consider setting the DATABASECONNECTOR_JAR_FOLDER environment variable, for example in the .Renviron file.")
   }
-
+  
   if (pathToDriver != Sys.getenv("DATABASECONNECTOR_JAR_FOLDER")) {
     if (Sys.getenv("DATABASECONNECTOR_JAR_FOLDER") != pathToDriver) {
       inform(paste0(
@@ -71,9 +71,9 @@ downloadJdbcDrivers <- function(dbms, pathToDriver = Sys.getenv("DATABASECONNECT
       ))
     }
   }
-
+  
   pathToDriver <- path.expand(pathToDriver)
-
+  
   if (!dir.exists(pathToDriver)) {
     if (file.exists(pathToDriver)) {
       abort(paste0("The folder location pathToDriver = '", pathToDriver, "' points to a file, but should point to a folder."))
@@ -81,23 +81,24 @@ downloadJdbcDrivers <- function(dbms, pathToDriver = Sys.getenv("DATABASECONNECT
     warn(paste0("The folder location '", pathToDriver, "' does not exist. Attempting to create."))
     dir.create(pathToDriver, recursive = TRUE)
   }
-
+  
   stopifnot(is.character(dbms), length(dbms) == 1, dbms %in% c("all", "postgresql", "redshift", "sql server", "oracle", "pdw", "snowflake", "spark", "bigquery"))
-
+  
   if (dbms == "pdw" || dbms == "synapse") {
     dbms <- "sql server"
   }
   
   jdbcDriverSources <- utils::read.csv(text = 
-    "row,dbms, fileName, baseUrl
-    1,postgresql,postgresqlV42.2.18.zip,https://ohdsi.github.io/DatabaseConnectorJars/
+                                         "row,dbms, fileName, baseUrl
+    1,postgresql,postgresql-42.7.3.jar,https://jdbc.postgresql.org/download/
     2,redshift,redshift-jdbc42-2.1.0.20.zip,https://s3.amazonaws.com/redshift-downloads/drivers/jdbc/2.1.0.20/
     3,sql server,sqlServerV9.2.0.zip,https://ohdsi.github.io/DatabaseConnectorJars/
     4,oracle,oracleV19.8.zip,https://ohdsi.github.io/DatabaseConnectorJars/
-    5,spark,DatabricksJDBC42-2.6.32.1054.zip,https://databricks-bi-artifacts.s3.us-east-2.amazonaws.com/simbaspark-drivers/jdbc/2.6.32/
-    6,snowflake,SnowflakeV3.13.22.zip,https://ohdsi.github.io/DatabaseConnectorJars/
-    7,bigquery,SimbaBigQueryJDBC42-1.3.2.1003.zip,https://storage.googleapis.com/simba-bq-release/jdbc/"
+    5,spark,DatabricksJDBC42-2.6.36.1062.zip,https://databricks-bi-artifacts.s3.us-east-2.amazonaws.com/simbaspark-drivers/jdbc/2.6.36/
+    6,snowflake,snowflake-jdbc-3.16.1.jar,https://repo1.maven.org/maven2/net/snowflake/snowflake-jdbc/3.16.1/
+    7,bigquery,SimbaJDBCDriverforGoogleBigQuery42_1.6.2.1003.zip,https://storage.googleapis.com/simba-bq-release/jdbc/"
   )
+
   if (dbms == "all") {
     dbms <- jdbcDriverSources$dbms
   }
@@ -112,26 +113,37 @@ downloadJdbcDrivers <- function(dbms, pathToDriver = Sys.getenv("DATABASECONNECT
       }
     }
     driverSource <- jdbcDriverSources[jdbcDriverSources$dbms == db, ]
-
-    result <- download.file(
-      url = paste0(driverSource$baseUrl, driverSource$fileName),
-      destfile = file.path(pathToDriver, driverSource$fileName),
-      method = method
-    )
-
-    extractedFilename <- unzip(file.path(pathToDriver, driverSource$fileName), exdir = pathToDriver)
-    unzipSuccess <- is.character(extractedFilename)
-
-    if (unzipSuccess) {
-      file.remove(file.path(pathToDriver, driverSource$fileName))
+    if (grepl("\\.zip$", driverSource$fileName)) {
+      # Zip file. Download and unzip
+      result <- download.file(
+        url = paste0(driverSource$baseUrl, driverSource$fileName),
+        destfile = file.path(pathToDriver, driverSource$fileName),
+        method = method
+      )
+      
+      extractedFilename <- unzip(file.path(pathToDriver, driverSource$fileName), 
+                                 exdir = pathToDriver,
+                                 junkpaths = TRUE)
+      unzipSuccess <- is.character(extractedFilename)
+      
+      if (unzipSuccess) {
+        file.remove(file.path(pathToDriver, driverSource$fileName))
+      }
+    } else {
+      # Jar file. Download directly to jar folder
+      unzipSuccess <- TRUE
+      result <- download.file(
+        url = paste0(driverSource$baseUrl, driverSource$fileName),
+        destfile = file.path(pathToDriver, driverSource$fileName),
+        method = method
+      )
     }
     if (unzipSuccess && result == 0) {
       inform(paste0("DatabaseConnector ", db, " JDBC driver downloaded to '", pathToDriver, "'."))
     } else {
       abort(paste0("Downloading and unzipping of ", db, " JDBC driver to '", pathToDriver, "' has failed."))
-    }
+    } 
   }
-
   invisible(pathToDriver)
 }
 

@@ -7,7 +7,7 @@
 \S4method{dbHasCompleted}{DatabaseConnectorJdbcResult}(res, ...)
 }
 \arguments{
-\item{res}{An object inheriting from \linkS4class{DBIResult}.}
+\item{res}{An object inheriting from \link[DBI:DBIResult-class]{DBIResult}.}
 
 \item{...}{Other arguments passed on to methods.}
 }
@@ -24,7 +24,6 @@ This method returns if the operation has completed.
 A \code{SELECT} query is completed if all rows have been fetched.
 A data manipulation statement is always completed.
 
-\Sexpr[results=rd,stage=render]{DBI:::methods_as_rd("dbHasCompleted")}
 }
 \seealso{
 Other DBIResult generics: 
@@ -39,8 +38,25 @@ Other DBIResult generics:
 \code{\link[DBI]{dbGetStatement}()},
 \code{\link[DBI]{dbIsReadOnly}()},
 \code{\link[DBI]{dbIsValid}()},
-\code{\link[DBI]{dbQuoteIdentifier}()},
 \code{\link[DBI]{dbQuoteLiteral}()},
-\code{\link[DBI]{dbQuoteString}()},
-\code{\link[DBI]{dbUnquoteIdentifier}()}
+\code{\link[DBI]{dbQuoteString}()}
+
+Other DBIResultArrow generics: 
+\code{\link[DBI]{DBIResultArrow-class}},
+\code{\link[DBI]{dbBind}()},
+\code{\link[DBI]{dbClearResult}()},
+\code{\link[DBI]{dbFetchArrow}()},
+\code{\link[DBI]{dbFetchArrowChunk}()},
+\code{\link[DBI]{dbIsValid}()}
+
+Other data retrieval generics: 
+\code{\link[DBI]{dbBind}()},
+\code{\link[DBI]{dbClearResult}()},
+\code{\link[DBI]{dbFetch}()},
+\code{\link[DBI]{dbFetchArrow}()},
+\code{\link[DBI]{dbFetchArrowChunk}()},
+\code{\link[DBI]{dbGetQuery}()},
+\code{\link[DBI]{dbGetQueryArrow}()},
+\code{\link[DBI]{dbSendQuery}()},
+\code{\link[DBI]{dbSendQueryArrow}()}
 }

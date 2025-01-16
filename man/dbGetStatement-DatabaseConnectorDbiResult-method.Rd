@@ -7,20 +7,19 @@
 \S4method{dbGetStatement}{DatabaseConnectorDbiResult}(res, ...)
 }
 \arguments{
-\item{res}{An object inheriting from \linkS4class{DBIResult}.}
+\item{res}{An object inheriting from \link[DBI:DBIResult-class]{DBIResult}.}
 
 \item{...}{Other arguments passed on to methods.}
 }
 \value{
 \code{dbGetStatement()} returns a string, the query used in
-either \code{\link[DBI:dbSendQuery]{dbSendQuery()}}
-or \code{\link[DBI:dbSendStatement]{dbSendStatement()}}.
+either \code{\link[DBI:dbSendQuery]{dbSendQuery()}} or
+\code{\link[DBI:dbSendStatement]{dbSendStatement()}}.
 }
 \description{
 Returns the statement that was passed to \code{\link[DBI:dbSendQuery]{dbSendQuery()}}
 or \code{\link[DBI:dbSendStatement]{dbSendStatement()}}.
 
-\Sexpr[results=rd,stage=render]{DBI:::methods_as_rd("dbGetStatement")}
 }
 \seealso{
 Other DBIResult generics: 
@@ -35,8 +34,6 @@ Other DBIResult generics:
 \code{\link[DBI]{dbHasCompleted}()},
 \code{\link[DBI]{dbIsReadOnly}()},
 \code{\link[DBI]{dbIsValid}()},
-\code{\link[DBI]{dbQuoteIdentifier}()},
 \code{\link[DBI]{dbQuoteLiteral}()},
-\code{\link[DBI]{dbQuoteString}()},
-\code{\link[DBI]{dbUnquoteIdentifier}()}
+\code{\link[DBI]{dbQuoteString}()}
 }

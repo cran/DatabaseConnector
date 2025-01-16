@@ -7,7 +7,7 @@
 \S4method{dbListTables}{DatabaseConnectorConnection}(conn, databaseSchema = NULL, ...)
 }
 \arguments{
-\item{conn}{A \linkS4class{DBIConnection} object, as returned by
+\item{conn}{A \link[DBI:DBIConnection-class]{DBIConnection} object, as returned by
 \code{\link[DBI:dbConnect]{dbConnect()}}.}
 
 \item{databaseSchema}{The name of the database schema. See details for platform-specific details.}
@@ -20,8 +20,8 @@ returns a character vector
 that enumerates all tables
 and views
 in the database.
-Tables added with \code{\link[DBI:dbWriteTable]{dbWriteTable()}}
-are part of the list.
+Tables added with \code{\link[DBI:dbWriteTable]{dbWriteTable()}} are
+part of the list.
 As soon a table is removed from the database,
 it is also removed from the list of database tables.
 
@@ -35,7 +35,6 @@ connection.
 This should include views and temporary objects, but not all database backends
 (in particular \pkg{RMariaDB} and \pkg{RMySQL}) support this.
 
-\Sexpr[results=rd,stage=render]{DBI:::methods_as_rd("dbListTables")}
 }
 \details{
 The \code{databaseSchema} argument is interpreted differently according to the different platforms:
@@ -48,7 +47,9 @@ specify the schema.
 Other DBIConnection generics: 
 \code{\link[DBI]{DBIConnection-class}},
 \code{\link[DBI]{dbAppendTable}()},
+\code{\link[DBI]{dbAppendTableArrow}()},
 \code{\link[DBI]{dbCreateTable}()},
+\code{\link[DBI]{dbCreateTableArrow}()},
 \code{\link[DBI]{dbDataType}()},
 \code{\link[DBI]{dbDisconnect}()},
 \code{\link[DBI]{dbExecute}()},
@@ -56,14 +57,20 @@ Other DBIConnection generics:
 \code{\link[DBI]{dbGetException}()},
 \code{\link[DBI]{dbGetInfo}()},
 \code{\link[DBI]{dbGetQuery}()},
+\code{\link[DBI]{dbGetQueryArrow}()},
 \code{\link[DBI]{dbIsReadOnly}()},
 \code{\link[DBI]{dbIsValid}()},
 \code{\link[DBI]{dbListFields}()},
 \code{\link[DBI]{dbListObjects}()},
 \code{\link[DBI]{dbListResults}()},
+\code{\link[DBI]{dbQuoteIdentifier}()},
 \code{\link[DBI]{dbReadTable}()},
+\code{\link[DBI]{dbReadTableArrow}()},
 \code{\link[DBI]{dbRemoveTable}()},
 \code{\link[DBI]{dbSendQuery}()},
+\code{\link[DBI]{dbSendQueryArrow}()},
 \code{\link[DBI]{dbSendStatement}()},
-\code{\link[DBI]{dbWriteTable}()}
+\code{\link[DBI]{dbUnquoteIdentifier}()},
+\code{\link[DBI]{dbWriteTable}()},
+\code{\link[DBI]{dbWriteTableArrow}()}
 }

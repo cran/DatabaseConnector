@@ -7,21 +7,21 @@
 \S4method{dbClearResult}{DatabaseConnectorDbiResult}(res, ...)
 }
 \arguments{
-\item{res}{An object inheriting from \linkS4class{DBIResult}.}
+\item{res}{An object inheriting from \link[DBI:DBIResult-class]{DBIResult}.}
 
 \item{...}{Other arguments passed on to methods.}
 }
 \value{
 \code{dbClearResult()} returns \code{TRUE}, invisibly, for result sets obtained from
-both \code{dbSendQuery()}
-and \code{dbSendStatement()}.
+\code{dbSendQuery()},
+\code{dbSendStatement()},
+or \code{dbSendQueryArrow()},
 }
 \description{
 Frees all resources (local and remote) associated with a result set.
 This step is mandatory for all objects obtained by calling
 \code{\link[DBI:dbSendQuery]{dbSendQuery()}} or \code{\link[DBI:dbSendStatement]{dbSendStatement()}}.
 
-\Sexpr[results=rd,stage=render]{DBI:::methods_as_rd("dbClearResult")}
 }
 \seealso{
 Other DBIResult generics: 
@@ -36,8 +36,31 @@ Other DBIResult generics:
 \code{\link[DBI]{dbHasCompleted}()},
 \code{\link[DBI]{dbIsReadOnly}()},
 \code{\link[DBI]{dbIsValid}()},
-\code{\link[DBI]{dbQuoteIdentifier}()},
 \code{\link[DBI]{dbQuoteLiteral}()},
-\code{\link[DBI]{dbQuoteString}()},
-\code{\link[DBI]{dbUnquoteIdentifier}()}
+\code{\link[DBI]{dbQuoteString}()}
+
+Other DBIResultArrow generics: 
+\code{\link[DBI]{DBIResultArrow-class}},
+\code{\link[DBI]{dbBind}()},
+\code{\link[DBI]{dbFetchArrow}()},
+\code{\link[DBI]{dbFetchArrowChunk}()},
+\code{\link[DBI]{dbHasCompleted}()},
+\code{\link[DBI]{dbIsValid}()}
+
+Other data retrieval generics: 
+\code{\link[DBI]{dbBind}()},
+\code{\link[DBI]{dbFetch}()},
+\code{\link[DBI]{dbFetchArrow}()},
+\code{\link[DBI]{dbFetchArrowChunk}()},
+\code{\link[DBI]{dbGetQuery}()},
+\code{\link[DBI]{dbGetQueryArrow}()},
+\code{\link[DBI]{dbHasCompleted}()},
+\code{\link[DBI]{dbSendQuery}()},
+\code{\link[DBI]{dbSendQueryArrow}()}
+
+Other command execution generics: 
+\code{\link[DBI]{dbBind}()},
+\code{\link[DBI]{dbExecute}()},
+\code{\link[DBI]{dbGetRowsAffected}()},
+\code{\link[DBI]{dbSendStatement}()}
 }

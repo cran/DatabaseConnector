@@ -18,7 +18,7 @@
 )
 }
 \arguments{
-\item{conn}{A \linkS4class{DBIConnection} object, as returned by
+\item{conn}{A \link[DBI:DBIConnection-class]{DBIConnection} object, as returned by
 \code{\link[DBI:dbConnect]{dbConnect()}}.}
 
 \item{name}{The table name, passed on to \code{\link[DBI:dbQuoteIdentifier]{dbQuoteIdentifier()}}. Options are:
@@ -31,7 +31,7 @@ e.g. \code{Id(schema = "my_schema", table = "table_name")}
 given verbatim, e.g. \code{SQL('"my_schema"."table_name"')}
 }}
 
-\item{value}{a \link{data.frame} (or coercible to data.frame).}
+\item{value}{A \link{data.frame} (or coercible to data.frame).}
 
 \item{databaseSchema}{The name of the database schema. See details for platform-specific details.}
 
@@ -56,7 +56,6 @@ can be created.}
 Writes, overwrites or appends a data frame to a database table, optionally
 converting row names to a column and specifying SQL data types for fields.
 
-\Sexpr[results=rd,stage=render]{DBI:::methods_as_rd("dbWriteTable")}
 }
 \details{
 The \code{databaseSchema} argument is interpreted differently according to the different platforms:
@@ -69,7 +68,9 @@ specify the schema.
 Other DBIConnection generics: 
 \code{\link[DBI]{DBIConnection-class}},
 \code{\link[DBI]{dbAppendTable}()},
+\code{\link[DBI]{dbAppendTableArrow}()},
 \code{\link[DBI]{dbCreateTable}()},
+\code{\link[DBI]{dbCreateTableArrow}()},
 \code{\link[DBI]{dbDataType}()},
 \code{\link[DBI]{dbDisconnect}()},
 \code{\link[DBI]{dbExecute}()},
@@ -77,14 +78,20 @@ Other DBIConnection generics:
 \code{\link[DBI]{dbGetException}()},
 \code{\link[DBI]{dbGetInfo}()},
 \code{\link[DBI]{dbGetQuery}()},
+\code{\link[DBI]{dbGetQueryArrow}()},
 \code{\link[DBI]{dbIsReadOnly}()},
 \code{\link[DBI]{dbIsValid}()},
 \code{\link[DBI]{dbListFields}()},
 \code{\link[DBI]{dbListObjects}()},
 \code{\link[DBI]{dbListResults}()},
 \code{\link[DBI]{dbListTables}()},
+\code{\link[DBI]{dbQuoteIdentifier}()},
 \code{\link[DBI]{dbReadTable}()},
+\code{\link[DBI]{dbReadTableArrow}()},
 \code{\link[DBI]{dbRemoveTable}()},
 \code{\link[DBI]{dbSendQuery}()},
-\code{\link[DBI]{dbSendStatement}()}
+\code{\link[DBI]{dbSendQueryArrow}()},
+\code{\link[DBI]{dbSendStatement}()},
+\code{\link[DBI]{dbUnquoteIdentifier}()},
+\code{\link[DBI]{dbWriteTableArrow}()}
 }

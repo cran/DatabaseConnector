@@ -2,53 +2,53 @@
 library(DatabaseConnector)
 
 ## ----eval=FALSE---------------------------------------------------------------
-#  Sys.setenv("DATABASECONNECTOR_JAR_FOLDER" = "c:/temp/jdbcDrivers")
+# Sys.setenv("DATABASECONNECTOR_JAR_FOLDER" = "c:/temp/jdbcDrivers")
 
 ## ----eval=FALSE---------------------------------------------------------------
-#  install.packages("usethis")
-#  usethis::edit_r_environ()
+# install.packages("usethis")
+# usethis::edit_r_environ()
 
 ## ----eval=FALSE---------------------------------------------------------------
-#  Sys.setenv("DATABASECONNECTOR_JAR_FOLDER" = "c:/temp/jdbcDrivers")
+# Sys.setenv("DATABASECONNECTOR_JAR_FOLDER" = "c:/temp/jdbcDrivers")
 
 ## ----eval=FALSE---------------------------------------------------------------
-#  library(DatabaseConnector)
-#  downloadJdbcDrivers("postgresql")
+# library(DatabaseConnector)
+# downloadJdbcDrivers("postgresql")
 
 ## ----echo=FALSE---------------------------------------------------------------
 writeLines("DatabaseConnector JDBC drivers downloaded to 'c:/temp/jdbcDrivers'.")
 
 ## ----eval=FALSE---------------------------------------------------------------
-#  install.packages("RSQLite")
-#  install.packages("duckdb")
+# install.packages("RSQLite")
+# install.packages("duckdb")
 
 ## ----eval=FALSE---------------------------------------------------------------
-#  conn <- connect(dbms = "postgresql",
-#                  server = "localhost/postgres",
-#                  user = "joe",
-#                  password = "secret")
+# conn <- connect(dbms = "postgresql",
+#                 server = "localhost/postgres",
+#                 user = "joe",
+#                 password = "secret")
 
 ## ----echo=FALSE---------------------------------------------------------------
 writeLines("Connecting using PostgreSQL driver")
 
 ## ----eval=FALSE---------------------------------------------------------------
-#  disconnect(conn)
+# disconnect(conn)
 
 ## ----eval=FALSE---------------------------------------------------------------
-#  conn <- connect(dbms = "postgresql",
-#                  connectionString = "jdbc:postgresql://localhost:5432/postgres",
-#                  user = "joe",
-#                  password = "secret")
+# conn <- connect(dbms = "postgresql",
+#                 connectionString = "jdbc:postgresql://localhost:5432/postgres",
+#                 user = "joe",
+#                 password = "secret")
 
 ## ----echo=FALSE---------------------------------------------------------------
 writeLines("Connecting using PostgreSQL driver")
 
 ## ----eval=FALSE---------------------------------------------------------------
-#  details <- createConnectionDetails(dbms = "postgresql",
-#                                     server = "localhost/postgres",
-#                                     user = "joe",
-#                                     password = "secret")
-#  conn <- connect(details)
+# details <- createConnectionDetails(dbms = "postgresql",
+#                                    server = "localhost/postgres",
+#                                    user = "joe",
+#                                    password = "secret")
+# conn <- connect(details)
 
 ## ----echo=FALSE---------------------------------------------------------------
 writeLines("Connecting using PostgreSQL driver")
@@ -64,4 +64,13 @@ insertTable(connection = conn,
 querySql(conn, "SELECT COUNT(*) FROM main.cars;")
 
 disconnect(conn)
+
+## ----eval=FALSE---------------------------------------------------------------
+# library(devtools)
+# library(DatabaseConnector)
+# connectionDetails <- createConnectionDetails(
+#   dbms="sql server",
+#   ...
+#   extraSettings="authenticationScheme=JavaKerberos")
+# c <- connect(connectionDetails = connectionDetails)
 

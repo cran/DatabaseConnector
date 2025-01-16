@@ -1,3 +1,17 @@
+DatabaseConnector 6.3.3
+=======================
+
+Changes:
+
+- Updated Snowflake driver to 3.16.1.
+
+- Updated Databricks driver to 2.6.36.
+
+- Updated BigQuery driver to 1.6.2.
+
+- Using `INSERT` with multiple values in `insertTable()` for DataBricks for faster inserts.
+
+
 DatabaseConnector 6.3.2
 =======================
 

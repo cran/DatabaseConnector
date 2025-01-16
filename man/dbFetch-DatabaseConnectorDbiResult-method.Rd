@@ -7,7 +7,7 @@
 \S4method{dbFetch}{DatabaseConnectorDbiResult}(res, n = -1, ...)
 }
 \arguments{
-\item{res}{An object inheriting from \linkS4class{DBIResult}, created by
+\item{res}{An object inheriting from \link[DBI:DBIResult-class]{DBIResult}, created by
 \code{\link[DBI:dbSendQuery]{dbSendQuery()}}.}
 
 \item{n}{maximum number of records to retrieve per fetch. Use \code{n = -1}
@@ -18,18 +18,19 @@ special values.}
 \item{...}{Other arguments passed on to methods.}
 }
 \value{
-\code{dbFetch()} always returns a \link{data.frame}
-with as many rows as records were fetched and as many
+\code{dbFetch()} always returns a \link{data.frame} with
+as many rows as records were fetched and as many
 columns as fields in the result set,
 even if the result is a single value
 or has one
 or zero rows.
+Passing \code{n = NA} is supported and returns an arbitrary number of rows (at least one)
+as specified by the driver, but at most the remaining rows in the result set.
 }
 \description{
 Fetch the next \code{n} elements (rows) from the result set and return them
 as a data.frame.
 
-\Sexpr[results=rd,stage=render]{DBI:::methods_as_rd("dbFetch")}
 }
 \details{
 \code{fetch()} is provided for compatibility with older DBI clients - for all
@@ -53,8 +54,17 @@ Other DBIResult generics:
 \code{\link[DBI]{dbHasCompleted}()},
 \code{\link[DBI]{dbIsReadOnly}()},
 \code{\link[DBI]{dbIsValid}()},
-\code{\link[DBI]{dbQuoteIdentifier}()},
 \code{\link[DBI]{dbQuoteLiteral}()},
-\code{\link[DBI]{dbQuoteString}()},
-\code{\link[DBI]{dbUnquoteIdentifier}()}
+\code{\link[DBI]{dbQuoteString}()}
+
+Other data retrieval generics: 
+\code{\link[DBI]{dbBind}()},
+\code{\link[DBI]{dbClearResult}()},
+\code{\link[DBI]{dbFetchArrow}()},
+\code{\link[DBI]{dbFetchArrowChunk}()},
+\code{\link[DBI]{dbGetQuery}()},
+\code{\link[DBI]{dbGetQueryArrow}()},
+\code{\link[DBI]{dbHasCompleted}()},
+\code{\link[DBI]{dbSendQuery}()},
+\code{\link[DBI]{dbSendQueryArrow}()}
 }
